@@ -1,0 +1,88 @@
+name: pedidos
+x-db-env: &db-env
+    PGHOST: ${DB_HOST:-primary}
+    PGDATABASE: pedidos
+    PGUSER: orders_app
+    PGPASSWORD: ${APP_PASSWORD:?Configure APP_PASSWORD}
+    APP_TOKEN: ${APP_TOKEN:?Configure APP_TOKEN}
+    CLIENT_TOKENS: ${CLIENT_TOKENS:?Configure CLIENT_TOKENS}
+x-api: &api
+  build: ./backend
+  restart: unless-stopped
+  environment: &api-env
+    <<: *db-env
+    DATA_KEY: ${DATA_KEY:?Configure DATA_KEY}
+  networks: [edge, data]
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/ready', timeout=4)"]
+    interval: 5s
+    timeout: 5s
+    retries: 12
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    ports: ["127.0.0.1:${PORT:-8080}:80"]
+    networks: [edge]
+  api-a:
+    <<: *api
+    environment: {<<: *api-env, NODE_ID: api-a}
+  api-b:
+    <<: *api
+    environment: {<<: *api-env, NODE_ID: api-b}
+  monitor:
+    build: ./backend
+    command: ["uvicorn", "monitor:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
+    environment:
+      <<: *db-env
+      REPLICA_HOST: ${REPLICA_HOST:-replica}
+    restart: unless-stopped
+    networks: [edge, data]
+    volumes:
+      - health-data:/var/lib/vayxer
+  primary:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: pedidos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      APP_PASSWORD: ${APP_PASSWORD:?Configure APP_PASSWORD}
+      REPL_PASSWORD: ${REPL_PASSWORD:?Configure REPL_PASSWORD}
+    command: ["postgres", "-c", "wal_level=replica", "-c", "wal_keep_size=256MB"]
+    volumes:
+      - primary-data:/var/lib/postgresql/data
+      - ./database/01-init.sh:/docker-entrypoint-initdb.d/01-init.sh:ro
+      - ./database/schema.sql:/opt/pedidos/schema.sql:ro
+      - ./database/02-security.sql:/opt/pedidos/02-security.sql:ro
+    networks: [data]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "pedidos"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  replica:
+    image: postgres:16
+    environment:
+      REPL_PASSWORD: ${REPL_PASSWORD:?Configure REPL_PASSWORD}
+      REPL_SOURCE: ${REPL_SOURCE:-primary}
+    entrypoint: ["bash", "/opt/pedidos/standby.sh"]
+    restart: unless-stopped
+    volumes:
+      - replica-data:/var/lib/postgresql/data
+      - ./database/standby.sh:/opt/pedidos/standby.sh:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "pedidos"]
+      interval: 5s
+      timeout: 3s
+      retries: 48
+    networks: [data]
+networks:
+  edge:
+  data:
+    internal: true
+volumes:
+  primary-data:
+  replica-data:
+  health-data:

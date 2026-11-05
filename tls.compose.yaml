@@ -1,0 +1,6 @@
+services:
+  gateway:
+    ports: !override ["127.0.0.1:${TLS_PORT:-8443}:443"]
+    volumes:
+      - ./deploy/tls.conf:/etc/nginx/conf.d/tls.conf:ro
+      - ./local-tls:/run/vayxer-tls:ro

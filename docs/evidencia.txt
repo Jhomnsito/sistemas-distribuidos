@@ -1,0 +1,71 @@
+UNITARIAS
+test_fingerprint_binds_body_method_and_resource (test_domain.DomainTest.test_fingerprint_binds_body_method_and_resource) ... ok
+test_normalizes_names (test_domain.DomainTest.test_normalizes_names) ... ok
+test_rejects_malformed_input (test_domain.DomainTest.test_rejects_malformed_input) ... ok
+test_transition_matrix (test_domain.DomainTest.test_transition_matrix) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.002s
+
+OK
+
+INTEGRACIÓN, CONVERGENCIA Y CAÍDA DEL BACKEND
+test_auth_and_validation (test_integration.IntegrationTest.test_auth_and_validation) ... ok
+test_concurrent_idempotency (test_integration.IntegrationTest.test_concurrent_idempotency) ... ok
+test_concurrent_versions_and_state (test_integration.IntegrationTest.test_concurrent_versions_and_state) ... ok
+test_crud_and_replication (test_integration.IntegrationTest.test_crud_and_replication) ... ok
+test_two_backends (test_integration.IntegrationTest.test_two_backends) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 3.991s
+
+OK
+
+Réplica observada en 203.0 ms (incluye consulta)
+
+Réplica observada en 109.0 ms (incluye consulta)
+
+Réplica observada en 109.0 ms (incluye consulta)
+
+Réplica observada en 172.0 ms (incluye consulta)
+
+Réplica observada en 203.0 ms (incluye consulta)
+Base: n=24 p95=155.6 ms errores=0/24 (0.00%) nodos={'api-b': 12, 'api-a': 12}
+Inyección: n=17 p95=1082.3 ms errores=0/17 (0.00%) nodos={'api-b': 16, 'api-a': 1}
+Primer éxito desde la detención confirmada: 1.172 s
+Degradado: n=19 p95=1141.8 ms errores=0/19 (0.00%) nodos={'api-b': 19}
+CRUD con api-a detenido verificado.
+
+NAVEGADOR, PROMOCIÓN Y REEMPLAZO
+UI real en Edge: rechazo de clave, acceso, CRUD, búsqueda y layout 390 px verificados.
+Réplica observada en 125.0 ms (incluye consulta)
+server promoted
+Promoción: 9.413 s desde solicitud de parada a escritura confirmada.
+Nueva réplica conectada y escritura observada en 15.157 s.
+
+REVALIDACIÓN DE VAYXER
+Pedidos cifrados: 7. Respuestas cifradas: 44.
+Migración de datos previos comprobada en PostgreSQL.
+test_auth_and_validation (test_integration.IntegrationTest.test_auth_and_validation) ... ok
+test_client_ownership_and_operations_access (test_integration.IntegrationTest.test_client_ownership_and_operations_access) ... ok
+test_concurrent_idempotency (test_integration.IntegrationTest.test_concurrent_idempotency) ... ok
+test_concurrent_versions_and_state (test_integration.IntegrationTest.test_concurrent_versions_and_state) ... ok
+test_crud_and_replication (test_integration.IntegrationTest.test_crud_and_replication) ... ok
+test_encrypted_storage_and_idempotency_on_replica (test_integration.IntegrationTest.test_encrypted_storage_and_idempotency_on_replica) ... ok
+test_two_backends (test_integration.IntegrationTest.test_two_backends) ... ok
+Ran 7 tests in 6.561s
+Réplica observada en 172.0 ms (incluye consulta)
+Réplica observada en 281.0 ms (incluye consulta)
+Réplica observada en 140.0 ms (incluye consulta)
+Réplica observada en 187.0 ms (incluye consulta)
+Réplica observada en 141.0 ms (incluye consulta)
+Réplica observada en 157.0 ms (incluye consulta)
+Réplica observada en 187.0 ms (incluye consulta)
+Base: n=20 p95=251.0 ms errores=0/20 (0.00%) nodos={'api-a': 10, 'api-b': 10}
+API A detenida: n=18 p95=1160.4 ms errores=0/18 (0.00%) nodos={'api-b': 18}
+Primer éxito de API B tras confirmar parada: 1.090 s
+Caída registrada y consultable en 6.459 s.
+CRUD completo durante la caída de API A.
+Vuelta a operativo detectada por el monitor.
+Vayxer en Edge: título y SVG compartido verificados, foco visible, acceso y CRUD, registro móvil sin desplazamiento lateral.
+Con PostgreSQL detenido, Operaciones conserva historial tras reiniciar el monitor.

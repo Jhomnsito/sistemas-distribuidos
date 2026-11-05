@@ -1,0 +1,11 @@
+services:
+  replacement:
+    extends:
+      file: compose.yaml
+      service: replica
+    environment:
+      REPL_SOURCE: replica
+    volumes:
+      - replacement-data:/var/lib/postgresql/data
+volumes:
+  replacement-data:
