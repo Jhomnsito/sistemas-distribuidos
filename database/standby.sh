@@ -6,8 +6,12 @@ if [[ ! -s "$PGDATA/PG_VERSION" ]]; then
   staging="$PGDATA/.bootstrap"
   rm -rf -- "$staging"
   install -d -m 700 -o postgres -g postgres "$staging"
+  # El primario puede estar iniciando el esquema o registrándose en el DNS de Compose.
+  until pg_isready -q -h "$REPL_SOURCE" -p 5432 -U orders_repl -t 2; do
+    sleep 2
+  done
   gosu postgres env PGPASSWORD="$REPL_PASSWORD" pg_basebackup \
-    -h "$REPL_SOURCE" -U orders_repl -D "$staging" -X stream -R --no-password
+    -h "$REPL_SOURCE" -U orders_repl -D "$staging" -X stream -R --checkpoint=fast --no-password
   # Guardar la contraseña en .pgpass, fuera de los parámetros de conexión.
   sed -i '/^primary_conninfo/d' "$staging/postgresql.auto.conf"
   escaped=${REPL_PASSWORD//\\/\\\\}

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 import Operations from "./operations.jsx";
+import BrandArtwork from "./BrandArtwork.jsx";
 import vayxerMark from "./vayxer.svg?no-inline";
 
 const states = [
@@ -350,6 +351,7 @@ function App() {
             <h1>Control de pedidos</h1>
             <p>Registra envíos y acompaña cada pedido hasta su entrega.</p>
           </div>
+          {!token && <BrandArtwork />}
           {token && (
             <button className="primary" onClick={() => setDialog({})}>
               <Icon name="plus" /> Nuevo pedido
@@ -358,13 +360,6 @@ function App() {
         </section>
         {!token ? (
           <section className="panel login">
-            <img
-              className="access-mark"
-              src={vayxerMark}
-              alt=""
-              width="48"
-              height="48"
-            />
             <h2>Acceso al panel</h2>
             <p>Ingresa tu clave de cliente o administrador.</p>
             <form

@@ -380,10 +380,6 @@ footer span {
   max-width: 460px;
   padding: 27px;
 }
-.access-mark {
-  display: block;
-  margin-bottom: 13px;
-}
 .login form {
   margin-top: 22px;
 }
@@ -477,6 +473,18 @@ fieldset {
 }
 .access-layout .hero {
   margin: 0;
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 20px;
+}
+.access-artwork {
+  display: block;
+  width: 100%;
+  max-width: 540px;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 8px 22px #42101b26;
 }
 .access-layout .login {
   width: 100%;

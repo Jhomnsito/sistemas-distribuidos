@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import BrandArtwork from "./BrandArtwork.jsx";
 import vayxerMark from "./vayxer.svg?no-inline";
 
 const names = {
@@ -119,6 +120,7 @@ export default function Operations() {
             <h1>Operaciones</h1>
             <p>Consulta la salud de los servicios y los eventos del sistema.</p>
           </div>
+          {!data && <BrandArtwork />}
           {data && (
             <button
               className="secondary"
@@ -134,13 +136,6 @@ export default function Operations() {
         </section>
         {!data ? (
           <section className="panel login">
-            <img
-              className="access-mark"
-              src={vayxerMark}
-              alt=""
-              width="48"
-              height="48"
-            />
             <h2>Acceso administrativo</h2>
             <p>Usa la clave de administrador.</p>
             <form onSubmit={login}>
