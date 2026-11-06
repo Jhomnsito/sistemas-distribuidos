@@ -3,7 +3,7 @@
 try {
     $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
     $launcher = Join-Path $root 'Vayxer.cmd'
-    $icon = Join-Path $PSScriptRoot 'Vayxer.ico'
+    $icon = Join-Path $PSScriptRoot 'Vayxer-flecha.ico'
     if (-not (Test-Path -LiteralPath $launcher) -or -not (Test-Path -LiteralPath $icon)) {
         throw 'Descomprime todo el proyecto y ejecuta el instalador desde la carpeta descomprimida.'
     }

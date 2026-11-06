@@ -115,4 +115,4 @@ ACCESO FINAL Y LANZADOR DE WINDOWS
 Vayxer listo en http://127.0.0.1:8080
 Edge: formulario visible en 1360 y 390 px, marca en encabezado, sin pie ni arte panorámico en los accesos.
 Cinco capturas funcionales renovadas en Docker con identificadores de demostración.
-Icono ICO verificado: 16, 24, 32, 48, 64, 128 y 256 px.
+Icono ICO de la flecha angular de Vayxer verificado en 16, 24, 32, 48, 64, 128 y 256 px.
