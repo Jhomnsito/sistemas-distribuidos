@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 import Operations from "./operations.jsx";
-import BrandArtwork from "./BrandArtwork.jsx";
 import vayxerMark from "./vayxer.svg?no-inline";
 
 const states = [
@@ -345,22 +344,24 @@ function App() {
         </div>
       </header>
       <main className={token ? "shell" : "shell access-layout"}>
-        <section className="hero">
-          <div>
-            <p className="eyebrow">CENTRO DE OPERACIONES</p>
-            <h1>Control de pedidos</h1>
-            <p>Registra envíos y acompaña cada pedido hasta su entrega.</p>
-          </div>
-          {!token && <BrandArtwork />}
-          {token && (
-            <button className="primary" onClick={() => setDialog({})}>
-              <Icon name="plus" /> Nuevo pedido
-            </button>
-          )}
-        </section>
+        {token && (
+          <section className="hero">
+            <div>
+              <p className="eyebrow">CENTRO DE OPERACIONES</p>
+              <h1>Control de pedidos</h1>
+              <p>Registra envíos y acompaña cada pedido hasta su entrega.</p>
+            </div>
+            {token && (
+              <button className="primary" onClick={() => setDialog({})}>
+                <Icon name="plus" /> Nuevo pedido
+              </button>
+            )}
+          </section>
+        )}
         {!token ? (
           <section className="panel login">
-            <h2>Acceso al panel</h2>
+            <p className="eyebrow">CONTROL DE PEDIDOS</p>
+            <h1>Acceso al panel</h1>
             <p>Ingresa tu clave de cliente o administrador.</p>
             <form
               onSubmit={(event) => {
@@ -590,9 +591,6 @@ function App() {
             </section>
           </>
         )}
-        <footer>
-          Vayxer <span>·</span> Sistema distribuido de pedidos
-        </footer>
       </main>
       {dialog && (
         <OrderDialog

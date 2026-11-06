@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import BrandArtwork from "./BrandArtwork.jsx";
 import vayxerMark from "./vayxer.svg?no-inline";
 
 const names = {
@@ -114,29 +113,32 @@ export default function Operations() {
         </div>
       </header>
       <main className={data ? "shell" : "shell access-layout"}>
-        <section className="hero">
-          <div>
-            <p className="eyebrow">ADMINISTRACIÓN</p>
-            <h1>Operaciones</h1>
-            <p>Consulta la salud de los servicios y los eventos del sistema.</p>
-          </div>
-          {!data && <BrandArtwork />}
-          {data && (
-            <button
-              className="secondary"
-              onClick={() => {
-                setToken("");
-                setData(null);
-                setError("");
-              }}
-            >
-              Cerrar sesión
-            </button>
-          )}
-        </section>
+        {data && (
+          <section className="hero">
+            <div>
+              <p className="eyebrow">ADMINISTRACIÓN</p>
+              <h1>Operaciones</h1>
+              <p>
+                Consulta la salud de los servicios y los eventos del sistema.
+              </p>
+            </div>
+            {data && (
+              <button
+                className="secondary"
+                onClick={() => {
+                  setToken("");
+                  setData(null);
+                  setError("");
+                }}
+              >
+                Cerrar sesión
+              </button>
+            )}
+          </section>
+        )}
         {!data ? (
           <section className="panel login">
-            <h2>Acceso administrativo</h2>
+            <h1>Acceso administrativo</h1>
             <p>Usa la clave de administrador.</p>
             <form onSubmit={login}>
               <label>
@@ -234,9 +236,6 @@ export default function Operations() {
             </div>
           </>
         )}
-        <footer>
-          Vayxer <span>·</span> Operaciones
-        </footer>
       </main>
     </>
   );

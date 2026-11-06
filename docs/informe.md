@@ -46,7 +46,7 @@ La replicación es asíncrona. El marcador ya estaba replicado cuando se inyect�
 
 ## Navegador
 
-En Microsoft Edge se verificaron el rechazo de una clave inválida, el acceso, el alta, el cambio de estado, la confirmación y ejecución del borrado, la búsqueda y un ancho de 390 px sin desbordamiento del documento. Las cinco capturas del paquete local se tomaron del sistema en ejecución con datos de demostración. Vite compiló el panel y npm audit informó cero alertas para las dependencias consultadas.
+En Microsoft Edge se verificaron el rechazo de una clave inválida, el acceso, el alta, el cambio de estado, la confirmación y ejecución del borrado, la búsqueda y un ancho de 390 px sin desbordamiento del documento. Las cinco capturas del manual se tomaron del sistema en ejecución con datos de demostración. Vite compiló el panel y npm audit informó cero alertas para las dependencias consultadas.
 
 ## Conclusiones
 
@@ -68,3 +68,21 @@ La revisión posterior mantuvo la topología nativa e incorporó el monitor como
 | Navegador | SVG compartido, foco visible, CRUD de administración, acceso de cliente, rechazo de cliente en Operaciones y vista a 390 px sin desplazamiento lateral |
 
 Los tiempos anteriores a esta sección corresponden al primer ensayo nativo. La recuperación de PostgreSQL de ese ensayo verificó promoción y reemplazo. La revalidación de Vayxer comprobó la pérdida del primario y la conservación del historial del monitor. Los manifiestos base, de recuperación y TLS pasaron la validación de configuración.
+
+## Verificación en Docker Desktop · 6 de noviembre de 2026
+
+Se desplegó el commit 79704b4 desde GitHub con Docker Engine 29.9.2, Compose 5.6.1 y PostgreSQL 16.15. El gateway, ambos nodos, el monitor, el primario y la réplica iniciaron en el proyecto local. El primer despliegue detectó una carrera de arranque de la réplica. Se añadió una espera activa por el primario y una copia inicial con checkpoint rápido. Un proyecto separado arrancó desde volúmenes vacíos y alcanzó streaming en **12,795 s**.
+
+La integración pasó **7 de 7** en **8,416 s**. La prueba de caída completó el CRUD con API A detenida y obtuvo **0 errores en 94 sondas**. El primer éxito después de confirmar la detención fue a los **0,135 s**.
+
+| Fase | Sondas | p95 | Errores |
+|---|---:|---:|---:|
+| Base | 35 | 65,6 ms | 0 |
+| Durante la inyección | 32 | 103,3 ms | 0 |
+| API A detenida | 27 | 81,5 ms | 0 |
+
+El ensayo de Operaciones observó la caída **9,953 s** después de confirmar la parada, conservó el evento tras reiniciar el monitor y observó API A operativa a los **23,860 s** desde el inicio del ensayo. El gateway temporal con el perfil HTTPS respondió HTTP 200 en `/api/ready` con **TLS 1.3** y certificado validado por el cliente.
+
+El logotipo aportado por el usuario se sirvió en WebP de **24.922 bytes**. Edge comprobó la proporción 960 × 427 sin deformación, la vista a 390 y 1360 px y el favicon SVG. Se actualizó la captura de acceso en el ZIP local.
+
+En el proyecto temporal de recuperación se aisló el primario, se comprobó HTTP 503, se promovió la réplica y se redirigieron los dos nodos y el monitor. Se confirmó una escritura a los **25,264 s** desde la orden de parada. Una réplica de reemplazo alcanzó streaming y recibió otra escritura a los **8,686 s** desde el inicio de su arranque. El pedido marcador ya estaba replicado antes de la parada. El ensayo automatizó las acciones de recuperación y usó un proyecto aparte.

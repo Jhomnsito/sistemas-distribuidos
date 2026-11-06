@@ -2,6 +2,10 @@
 
 Proyecto final académico. Panel React en español, dos APIs FastAPI detrás de NGINX, PostgreSQL con réplica física asíncrona y un monitor con historial persistente.
 
+## Acceso directo en Windows
+
+Descomprime el ZIP o clona el repositorio en una carpeta permanente. Ejecuta **Instalar acceso directo.cmd** para crear **Vayxer** en el Escritorio, o abre **Vayxer.cmd** desde la carpeta. Docker Desktop debe estar instalado con contenedores Linux y Compose. El primer inicio requiere Python 3.11 o posterior si aún no existe `.env`. El lanzador espera una respuesta real de la API antes de abrir el navegador. Si mueves la carpeta, vuelve a crear el acceso directo desde su nueva ubicación.
+
 ## Despliegue local
 
 Requisitos: Docker con Compose v2, Python 3.11+ y un navegador. Ejecuta desde la raíz.

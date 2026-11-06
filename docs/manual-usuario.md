@@ -1,8 +1,10 @@
 # Manual de usuario · Vayxer
 
-Las capturas de demostración se incluyen en el paquete de entrega local.
+Las capturas de demostración se incluyen en el ZIP de entrega.
 
 ## Instalación y acceso
+
+En Windows puedes usar **Instalar acceso directo.cmd** y abrir **Vayxer** desde el Escritorio. El lanzador conserva la configuración local y abre el panel cuando la API confirma que está disponible.
 
 1. Descomprime la entrega y abre una terminal en la carpeta `Pedidos`.
 2. Genera la configuración con `python deploy/setup.py`.
@@ -39,3 +41,5 @@ En el panel de pedidos, administración puede abrir **Operaciones** y volver a a
 
 
 Si una API se detiene, puedes seguir registrando y consultando pedidos mediante la API sana. Si la base queda inaccesible, la actividad de pedidos se suspende y Operaciones conserva el historial de salud mientras el gateway y el monitor respondan. Si cae el gateway, espera su recuperación antes de volver a abrir el panel.
+
+El [arte panorámico de Vayxer](identidad/vayxer-art.webp) se conserva como recurso de identidad. La interfaz usa el monograma en el encabezado y en el favicon.

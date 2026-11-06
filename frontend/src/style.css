@@ -367,15 +367,6 @@ td time {
 .pagination button {
   padding: 6px 10px;
 }
-footer {
-  font-size: 12px;
-  font-weight: 650;
-  color: var(--muted);
-  padding: 22px 0;
-}
-footer span {
-  margin: 0 5px;
-}
 .login {
   max-width: 460px;
   padding: 27px;
@@ -465,46 +456,28 @@ fieldset {
 }
 
 .access-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
-  gap: 30px clamp(24px, 6vw, 84px);
-  align-items: center;
-  padding-top: clamp(36px, 9vh, 100px);
-}
-.access-layout .hero {
-  margin: 0;
-  display: flex;
-  align-items: flex-start;
-  flex-direction: column;
-  gap: 20px;
-}
-.access-artwork {
-  display: block;
-  width: 100%;
-  max-width: 540px;
-  height: auto;
-  border-radius: 12px;
-  box-shadow: 0 8px 22px #42101b26;
+  max-width: 520px;
+  padding-top: clamp(32px, 8vh, 80px);
+  padding-bottom: 30px;
 }
 .access-layout .login {
   width: 100%;
   max-width: none;
   border-top: 3px solid var(--accent);
 }
-.access-layout footer {
-  grid-column: 1 / -1;
+.login h1 {
+  margin: 5px 0 8px;
+  font-size: clamp(1.6rem, 5vw, 2rem);
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+}
+.login > .eyebrow {
+  color: var(--accent);
 }
 .mobile-units {
   display: none;
 }
 @media (max-width: 800px) {
-  .access-layout {
-    grid-template-columns: minmax(0, 1fr);
-    padding-top: 26px;
-  }
-  .access-layout .login {
-    max-width: 440px;
-  }
   .table-wrap table,
   .table-wrap tbody {
     display: block;
