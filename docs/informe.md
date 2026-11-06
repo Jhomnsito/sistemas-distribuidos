@@ -86,3 +86,9 @@ El ensayo de Operaciones observó la caída **9,953 s** después de confirmar la
 El logotipo aportado por el usuario se sirvió en WebP de **24.922 bytes**. Edge comprobó la proporción 960 × 427 sin deformación, la vista a 390 y 1360 px y el favicon SVG. Se actualizó la captura de acceso en el ZIP local.
 
 En el proyecto temporal de recuperación se aisló el primario, se comprobó HTTP 503, se promovió la réplica y se redirigieron los dos nodos y el monitor. Se confirmó una escritura a los **25,264 s** desde la orden de parada. Una réplica de reemplazo alcanzó streaming y recibió otra escritura a los **8,686 s** desde el inicio de su arranque. El pedido marcador ya estaba replicado antes de la parada. El ensayo automatizó las acciones de recuperación y usó un proyecto aparte.
+
+### Acceso compacto y lanzador para Windows
+
+La revisión final dejó una sola tarjeta de acceso y el monograma en el encabezado y el favicon. Se retiraron el pie y el arte panorámico de ambos accesos. El arte se conserva como recurso de identidad. Edge verificó escritorio a 1360 px y móvil a 390 px, un único título principal, formulario visible y ausencia de desbordamiento horizontal. Se renovaron siete capturas desde Docker con datos de demostración.
+
+Se ejecutó el lanzador de Windows contra el proyecto local. Compose encontró los seis servicios y el lanzador confirmó HTTP 200 con estado ready antes de devolver la URL. Se creó y verificó el acceso directo del Escritorio, con destino resuelto desde el checkout que lo instaló y un icono ICO con tamaños 16, 24, 32, 48, 64, 128 y 256 píxeles. El instalador vuelve a resolver las rutas si se ejecuta desde otra ubicación.

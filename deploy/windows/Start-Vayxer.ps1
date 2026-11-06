@@ -66,8 +66,10 @@ try {
         throw 'Revisa Docker Desktop y los registros con docker compose logs --tail 40. Si el puerto está ocupado, cambia PORT en .env.'
     }
 
-    $binding = docker compose port gateway 80 2>$null | Select-Object -First 1
-    if ($LASTEXITCODE -ne 0 -or $binding -notmatch '^127\.0\.0\.1:(\d+)$') {
+    $ports = @(docker compose port gateway 80 2>$null)
+    $portExit = $LASTEXITCODE
+    $binding = ([string]($ports | Select-Object -First 1)).Trim()
+    if ($portExit -ne 0 -or $binding -notmatch '^127\.0\.0\.1:(\d+)$') {
         throw 'No se encontró el puerto HTTP local. Comprueba el servicio gateway y la variable PORT de .env.'
     }
     $url = "http://127.0.0.1:$($Matches[1])"
