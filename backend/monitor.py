@@ -4,14 +4,17 @@ import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager, closing, suppress
 from datetime import datetime, timezone
+from threading import Lock
 from urllib.request import urlopen
 
 import psycopg
 from fastapi import Depends, FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from psycopg.rows import dict_row
 
-from security import admin
+import auth_store
+from auth_routes import admin, router
 
 HISTORY = os.getenv("MONITOR_DB", "/var/lib/vayxer/health.sqlite")
 SERVICES = {
@@ -109,6 +112,7 @@ async def watch():
 @asynccontextmanager
 async def lifespan(_app):
     setup()
+    auth_store.setup()
     observer = asyncio.create_task(watch())
     try:
         yield
@@ -122,11 +126,20 @@ app = FastAPI(title="Vayxer · Operaciones", lifespan=lifespan,
               docs_url=None, redoc_url=None, openapi_url=None)
 
 
-@app.get("/api/ops/summary", dependencies=[Depends(admin)])
-def summary():
-    with closing(store()) as db:
-        states = [dict(row) for row in db.execute("SELECT * FROM health ORDER BY service")]
-        events = [dict(row) for row in db.execute("SELECT * FROM events ORDER BY id DESC LIMIT 60")]
+app.include_router(router)
+
+
+@app.exception_handler(RequestValidationError)
+async def invalid_request(_request, _error):
+    return JSONResponse(status_code=422, content={"detail": "Solicitud inválida."})
+
+
+audit_pool = ThreadPoolExecutor(max_workers=1)
+audit_lock = Lock()
+audit_query = None
+
+
+def read_audit():
     try:
         with postgres(target_session_attrs="read-write", row_factory=dict_row) as db:
             order_events = db.execute(
@@ -136,7 +149,29 @@ def summary():
         audit_available = True
     except psycopg.Error:
         order_events, audit_available = [], False
-    return {"services": states, "events": events, "orders": order_events,
+    return order_events, audit_available
+
+
+def audit_with_deadline():
+    global audit_query
+    with audit_lock:
+        if audit_query is None or audit_query.done():
+            audit_query = audit_pool.submit(read_audit)
+        pending = audit_query
+    try:
+        return pending.result(timeout=1.5)
+    except TimeoutError:
+        # Limita la espera HTTP aun si DNS o la conexión tardan más.
+        return [], False
+
+
+@app.get("/api/ops/summary", dependencies=[Depends(admin)])
+def summary():
+    with closing(store()) as db:
+        states = [dict(row) for row in db.execute("SELECT * FROM health ORDER BY service")]
+        events = [dict(row) for row in db.execute("SELECT * FROM events ORDER BY id DESC LIMIT 60")]
+    order_events, audit_available = audit_with_deadline()
+    return {"access": auth_store.activity(), "services": states, "events": events, "orders": order_events,
             "audit_available": audit_available}
 
 

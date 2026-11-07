@@ -92,3 +92,21 @@ En el proyecto temporal de recuperación se aisló el primario, se comprobó HTT
 La revisión final dejó una sola tarjeta de acceso y el monograma en el encabezado y el favicon. Se retiraron el pie y el arte panorámico de ambos accesos. El arte se conserva como recurso de identidad. Edge verificó escritorio a 1360 px y móvil a 390 px, un único título principal, formulario visible y ausencia de desbordamiento horizontal. Se renovaron siete capturas desde Docker con datos de demostración.
 
 Se ejecutó el lanzador de Windows contra el proyecto local. Compose encontró los seis servicios y el lanzador confirmó HTTP 200 con estado ready antes de devolver la URL. Se creó y verificó el acceso directo del Escritorio, con destino resuelto desde el checkout que lo instaló y un icono ICO con el contorno angular rojo trazado a partir del arte Vayxer y exportado en tamaños de 16, 24, 32, 48, 64, 128 y 256 píxeles. El instalador vuelve a resolver las rutas si se ejecuta desde otra ubicación.
+
+## Inicio guiado y autenticación por rol
+
+Se verificó un arranque de Windows desde una carpeta sin configuración ni certificado y un proyecto Compose sin volúmenes. El lanzador generó ambos archivos de configuración HTTPS y alcanzó la provisión de cuentas. Se ejecutó el asistente de contraseñas mediante una terminal de prueba con eco desactivado. Tras cerrar y volver a levantar Compose, ambos roles conservaron sus contraseñas, el pedido de prueba seguía accesible y el certificado y la configuración coincidían byte por byte.
+
+Pasaron **4 pruebas unitarias de autenticación y 7 de integración**. El tercer fallo devolvió HTTP 429 con Retry-After de cinco segundos. Un intento inmediato con la contraseña correcta siguió bloqueado. El siguiente se aceptó tras **5,28 s**. Las pruebas por HTTPS rechazaron cookies alteradas, rol falso, peticiones de otro origen y alta pública de cuentas. Confirmaron propiedad, expiración, logout y uso de la misma sesión desde ambas APIs. Operaciones autenticó a administración y mantuvo el historial con PostgreSQL detenido.
+
+En Edge se verificaron el formulario único, el destino por rol, la cookie no legible desde JavaScript y el cierre de sesión. La confianza del certificado de prueba se limitó a su clave pública en el navegador de verificación. El asistente de Windows ofrece importar el certificado local solo con aceptación explícita.
+
+## Controles de acceso y revisión de interfaz
+
+Se verificó el control de cuentas en un laboratorio aislado. Pasaron **6 pruebas unitarias de autenticación y 8 de integración**. Los nombres existente e inexistente recibieron HTTP 401, 401 y 429 al tercer fallo. Cambiar la cookie conservó el bloqueo. Las comprobaciones posteriores se hicieron a los **5,422 s** y **5,437 s**, respectivamente. La sesión legítima previa siguió activa durante los fallos.
+
+Solo administración pudo bloquear y desbloquear clientes. El bloqueo revocó la sesión en ambas APIs; desbloquear exigió volver a iniciar sesión. El servidor rechazó el bloqueo de administración, una acción enviada por cliente y un campo de rol añadido al cuerpo. Los eventos persistieron al reiniciar el monitor y excluyeron las contraseñas, cookies y direcciones de origen.
+
+La regresión del balanceador observó ambos nodos. Con API A detenida, API B completó el CRUD. Hubo **0 errores en 85 sondas**, con p95 de **101,6 ms** en base, **97,2 ms** durante la inyección y **86,8 ms** con el nodo detenido. El primer éxito tras confirmar la parada fue a los **0,172 s**. Actividad de acceso siguió disponible con PostgreSQL detenido.
+
+En el navegador se verificaron las confirmaciones y cancelación de cuentas, ambos temas, ambos roles y los anchos de **1360, 960 y 390 px**. Se ajustaron el tamaño mínimo de acciones, el ajuste de nombres largos y los campos de formularios en paneles estrechos. La arquitectura conserva sus componentes compartidos y los límites de capacidad descritos en el manual técnico.

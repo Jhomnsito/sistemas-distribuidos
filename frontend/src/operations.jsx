@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import vayxerMark from "./vayxer.svg?no-inline";
+import ThemeToggle from "./theme.jsx";
 
 const names = {
   gateway: "Gateway",
@@ -26,44 +27,130 @@ const date = new Intl.DateTimeFormat("es-CO", {
 const when = (time) => date.format(new Date(time));
 const label = (value) => value?.replaceAll("_", " ") || "—";
 
-export default function Operations() {
-  const [token, setToken] = useState("");
-  const [entry, setEntry] = useState("");
-  const [data, setData] = useState(null);
-  const [error, setError] = useState("");
+const accessActions = {
+  intento_fallido: "Contraseña incorrecta",
+  bloqueo_temporal: "Bloqueo temporal de 5 s",
+  inicio_sesion: "Inicio de sesión",
+  cierre_sesion: "Cierre de sesión",
+  sesion_expirada: "Sesión expirada",
+  cuenta_configurada: "Cuenta configurada",
+  cuenta_bloqueada: "Cuenta bloqueada",
+  cuenta_desbloqueada: "Cuenta desbloqueada",
+};
+
+function AccountConfirmation({ account, close, apply }) {
+  const dialog = useRef(null);
   const [busy, setBusy] = useState(false);
-
-  async function read(key, signal = AbortSignal.timeout(9000)) {
-    const response = await fetch("/api/ops/summary", {
-      headers: { Authorization: "Bearer " + key },
-      signal,
-    });
-    if (response.status === 403)
-      throw new Error("Esta cuenta no tiene acceso a Operaciones.");
-    if (response.status === 401)
-      throw new Error("Clave administrativa incorrecta o ausente.");
-    if (!response.ok) throw new Error("No se pudo consultar Operaciones.");
-    return response.json();
-  }
-
-  async function login(event) {
+  const [error, setError] = useState("");
+  useEffect(() => {
+    dialog.current.showModal();
+  }, []);
+  async function submit(event) {
     event.preventDefault();
     setBusy(true);
-    setError("");
     try {
-      const key = entry.trim();
-      setData(await read(key));
-      setEntry("");
-      setToken(key);
+      await apply(account);
+      close();
     } catch (failure) {
       setError(failure.message);
     } finally {
       setBusy(false);
     }
   }
+  return (
+    <dialog
+      ref={dialog}
+      aria-labelledby="account-title"
+      onCancel={(event) => {
+        if (busy) event.preventDefault();
+        else close();
+      }}
+    >
+      <form onSubmit={submit}>
+        <h2 id="account-title">
+          {account.disabled ? "Desbloquear cuenta" : "Bloquear cuenta"}
+        </h2>
+        <p>
+          <strong>{account.username}</strong>
+        </p>
+        <p>
+          {account.disabled
+            ? "Podrá iniciar sesión de nuevo. Las sesiones anteriores seguirán cerradas."
+            : "Se cerrarán sus sesiones y se impedirá un nuevo acceso hasta desbloquearla."}
+        </p>
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="dialog-actions">
+          <button
+            className="secondary"
+            type="button"
+            disabled={busy}
+            onClick={close}
+          >
+            Cancelar
+          </button>
+          <button
+            className={account.disabled ? "primary" : "danger"}
+            disabled={busy}
+          >
+            {busy ? "Guardando…" : "Confirmar"}
+          </button>
+        </div>
+      </form>
+    </dialog>
+  );
+}
+
+export default function Operations() {
+  const [data, setData] = useState(null);
+  const [account, setAccount] = useState(null);
+  const [error, setError] = useState("");
+
+  async function read(signal) {
+    const response = await fetch("/api/ops/summary", {
+      signal,
+    });
+    if (response.status === 403)
+      throw new Error("Esta cuenta no tiene acceso a Operaciones.");
+    if (response.status === 401) {
+      window.location.replace("/");
+      throw new Error("Inicia sesión para continuar.");
+    }
+    if (!response.ok) throw new Error("No se pudo consultar Operaciones.");
+    return response.json();
+  }
+
+  async function logout() {
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) throw new Error("No se pudo cerrar la sesión.");
+      window.location.assign("/");
+    } catch (failure) {
+      setError(failure.message);
+    }
+  }
+
+  async function changeAccount(selected) {
+    const response = await fetch(
+      "/api/auth/accounts/" + encodeURIComponent(selected.username),
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blocked: !selected.disabled }),
+        signal: AbortSignal.timeout(9000),
+      },
+    );
+    if (!response.ok) {
+      const failure = await response.json().catch(() => null);
+      throw new Error(failure?.detail || "No se pudo cambiar la cuenta.");
+    }
+    setData(await read(AbortSignal.timeout(9000)));
+  }
 
   useEffect(() => {
-    if (!token) return;
     const lifetime = new AbortController();
     let timer;
     async function poll() {
@@ -72,24 +159,21 @@ export default function Operations() {
           lifetime.signal,
           AbortSignal.timeout(9000),
         ]);
-        const next = await read(token, signal);
+        const next = await read(signal);
         setData(next);
         setError("");
-      } catch {
-        if (!lifetime.signal.aborted)
-          setError(
-            "No se pudo actualizar. Se muestra el último estado conocido.",
-          );
+      } catch (failure) {
+        if (!lifetime.signal.aborted) setError(failure.message);
       } finally {
         if (!lifetime.signal.aborted) timer = setTimeout(poll, 5000);
       }
     }
-    timer = setTimeout(poll, 5000);
+    poll();
     return () => {
       lifetime.abort();
       clearTimeout(timer);
     };
-  }, [token]);
+  }, []);
 
   return (
     <>
@@ -107,9 +191,12 @@ export default function Operations() {
               Vayxer<small>OPERACIONES</small>
             </div>
           </div>
-          <a className="signout" href="/">
-            Volver a pedidos
-          </a>
+          <div className="header-actions">
+            <ThemeToggle />
+            <a className="signout" href="/">
+              Volver a pedidos
+            </a>
+          </div>
         </div>
       </header>
       <main className={data ? "shell" : "shell access-layout"}>
@@ -123,14 +210,7 @@ export default function Operations() {
               </p>
             </div>
             {data && (
-              <button
-                className="secondary"
-                onClick={() => {
-                  setToken("");
-                  setData(null);
-                  setError("");
-                }}
-              >
+              <button className="secondary" onClick={logout}>
                 Cerrar sesión
               </button>
             )}
@@ -138,27 +218,14 @@ export default function Operations() {
         )}
         {!data ? (
           <section className="panel login">
-            <h1>Acceso administrativo</h1>
-            <p>Usa la clave de administrador.</p>
-            <form onSubmit={login}>
-              <label>
-                Clave administrativa
-                <input
-                  type="password"
-                  required
-                  value={entry}
-                  onChange={(event) => setEntry(event.target.value)}
-                />
-              </label>
-              {error && (
-                <p className="error" role="alert">
-                  {error}
-                </p>
-              )}
-              <button className="primary" disabled={busy}>
-                {busy ? "Verificando…" : "Entrar a Operaciones"}
-              </button>
-            </form>
+            <h1>Operaciones</h1>
+            {error ? (
+              <p className="error" role="alert">
+                {error}
+              </p>
+            ) : (
+              <p>Comprobando sesión…</p>
+            )}
           </section>
         ) : (
           <>
@@ -189,6 +256,58 @@ export default function Operations() {
                 );
               })}
             </section>
+            <div className="ops-history">
+              <section className="panel ops-card">
+                <h2>Actividad de acceso</h2>
+                {data.access.events.length ? (
+                  <ul>
+                    {data.access.events.map((event) => (
+                      <li key={event.id}>
+                        <strong>
+                          {accessActions[event.action] || event.action}
+                        </strong>
+                        <span>
+                          {event.username} · {event.actor}
+                        </span>
+                        <time>{when(event.happened_at * 1000)}</time>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>Aún no hay actividad de acceso registrada.</p>
+                )}
+              </section>
+              <section className="panel ops-card">
+                <h2>Cuentas cliente</h2>
+                {data.access.clients.length ? (
+                  <ul>
+                    {data.access.clients.map((client) => (
+                      <li key={client.username}>
+                        <strong>{client.username}</strong>
+                        <span>
+                          {client.disabled
+                            ? "Cuenta bloqueada"
+                            : "Cuenta habilitada"}
+                        </span>
+                        <button
+                          className="secondary"
+                          type="button"
+                          onClick={() => setAccount(client)}
+                          aria-label={
+                            (client.disabled ? "Desbloquear " : "Bloquear ") +
+                            client.username
+                          }
+                        >
+                          {client.disabled ? "Desbloquear" : "Bloquear"}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No hay cuentas cliente configuradas.</p>
+                )}
+              </section>
+            </div>
             <div className="ops-history">
               <section className="panel ops-card">
                 <h2>Historial de salud</h2>
@@ -237,6 +356,13 @@ export default function Operations() {
           </>
         )}
       </main>
+      {account && (
+        <AccountConfirmation
+          account={account}
+          close={() => setAccount(null)}
+          apply={changeAccount}
+        />
+      )}
     </>
   );
 }

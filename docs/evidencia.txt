@@ -116,3 +116,28 @@ Vayxer listo en http://127.0.0.1:8080
 Edge: formulario visible en 1360 y 390 px, marca en encabezado, sin pie ni arte panorámico en los accesos.
 Cinco capturas funcionales renovadas en Docker con identificadores de demostración.
 Icono ICO de la flecha angular de Vayxer verificado en 16, 24, 32, 48, 64, 128 y 256 px.
+
+INICIO GUIADO Y BLOQUEO DE DEMOSTRACIÓN
+Dos cuentas iniciales configuradas con el asistente y entrada oculta.
+Tercer fallo: 429 y Retry-After 5; inmediato 429; recuperación tras 5.28 s.
+HTTPS: cookie Secure/HttpOnly/SameSite, sesión común en ambas APIs, falsificación, CSRF, alta pública y límite verificados.
+Logout y expiración rechazaron el uso posterior de la misma cookie.
+Ran 7 tests in 6.220s
+Edge: formulario único, redirección por rol, cookie no legible desde JS y salida verificados.
+Reingreso tras bajar y levantar Compose: mismo certificado, configuración, contraseñas y pedido.
+Operaciones autenticó al administrador y mantuvo el historial con PostgreSQL detenido.
+Pruebas unitarias de autenticación: 4 de 4.
+
+CONTROLES DE CUENTA Y REVISIÓN DE INTERFAZ
+esteban_cliente: 401,401,429; otra cookie 429; recuperación tras 5.422 s; estado 200.
+usuario_inexistente: 401,401,429; otra cookie 429; recuperación tras 5.437 s; estado 401.
+Bloqueo/desbloqueo admin, revocación en ambas APIs, protección de admin y eventos persistentes sin secretos verificados.
+Ran 8 tests in 10.604s
+Base: n=30 p95=101.6 ms errores=0/30 (0.00%) nodos={'api-a': 15, 'api-b': 15}
+Durante la inyección: n=29 p95=97.2 ms errores=0/29 (0.00%) nodos={'api-a': 2, 'api-b': 27}
+Primer éxito observado tras confirmar la detención: 0.172 s
+Nodo detenido: n=26 p95=86.8 ms errores=0/26 (0.00%) nodos={'api-b': 26}
+CRUD comprobado durante la caída de api-a.
+UI: confirmación y cancelar, bloqueo/desbloqueo, ambos temas y roles, anchos 1360/960/390 px y formulario móvil verificados.
+Actividad de acceso y control administrativo disponibles con PostgreSQL detenido.
+Unitarias de autenticación: 6 aprobadas.

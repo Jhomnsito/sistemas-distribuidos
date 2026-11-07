@@ -1,7 +1,6 @@
 """Genera secretos locales o completa los que faltan al actualizar."""
 import argparse
 import base64
-import json
 import os
 from pathlib import Path
 from secrets import token_bytes, token_urlsafe
@@ -12,9 +11,7 @@ path = root / ".env"
 parser = argparse.ArgumentParser()
 parser.add_argument("--upgrade", action="store_true", help="Añade variables nuevas sin cambiar las existentes")
 args = parser.parse_args()
-values = {name: token_urlsafe(36) for name in ("POSTGRES_PASSWORD", "APP_PASSWORD", "REPL_PASSWORD", "APP_TOKEN")}
-clients = {subject: token_urlsafe(36) for subject in ("demo-alba", "demo-bruno")}
-values["CLIENT_TOKENS"] = "'" + json.dumps(clients, separators=(",", ":")) + "'"
+values = {name: token_urlsafe(36) for name in ("POSTGRES_PASSWORD", "APP_PASSWORD", "REPL_PASSWORD")}
 values["DATA_KEY"] = base64.urlsafe_b64encode(token_bytes(32)).decode()
 values.update(DB_HOST="primary", PORT="8080")
 
@@ -36,4 +33,4 @@ else:
     with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as output:
         for key, value in values.items():
             output.write(f"{key}={value}\n")
-print("Configuración local lista. Usa APP_TOKEN para administración y CLIENT_TOKENS para clientes.")
+print("Configuración local lista. Consulta el README para aprovisionar las cuentas.")

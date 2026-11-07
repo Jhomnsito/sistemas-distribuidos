@@ -1,11 +1,13 @@
-import hmac
 import json
-import os
 import re
 from dataclasses import dataclass
 from typing import Annotated
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
-from fastapi import Depends, Header, HTTPException
+from fastapi import Depends, HTTPException, Request as IncomingRequest
+
+COOKIE = "vayxer_session"
 
 
 @dataclass(frozen=True)
@@ -14,35 +16,35 @@ class Identity:
     role: str
 
 
-def credentials():
-    clients = json.loads(os.getenv("CLIENT_TOKENS", "{}"))
-    if not isinstance(clients, dict):
-        raise ValueError("CLIENT_TOKENS debe ser un objeto JSON")
-    records = [(Identity("admin", "admin"), os.environ["APP_TOKEN"])]
-    for subject, token in clients.items():
-        if subject == "admin" or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{1,63}", subject):
-            raise ValueError("Identificador de cliente inválido")
-        records.append((Identity(subject, "cliente"), token))
-    tokens = [token for _, token in records]
-    if any(not isinstance(token, str) or not token.isascii() or len(token) < 32 for token in tokens):
-        raise ValueError("Cada token debe tener al menos 32 caracteres ASCII")
-    if len(set(tokens)) != len(tokens):
-        raise ValueError("Las cuentas deben usar tokens distintos")
-    return [(identity, b"Bearer " + token.encode()) for identity, token in records]
+def is_https(request):
+    return request.headers.get("x-forwarded-proto") == "https"
 
 
-ACCOUNTS = credentials()
+def require_origin(request):
+    origin = request.headers.get("origin")
+    scheme = "https" if is_https(request) else "http"
+    if request.headers.get("sec-fetch-site") == "cross-site" or (
+        origin and origin != f"{scheme}://{request.headers['host']}"
+    ):
+        raise HTTPException(403, "Origen no permitido.")
 
 
-def authorize(authorization: Annotated[str | None, Header()] = None) -> Identity:
-    presented = (authorization or "").encode()
-    match = None
-    for identity, expected in ACCOUNTS:
-        if hmac.compare_digest(presented, expected):
-            match = identity
-    if match is None:
-        raise HTTPException(401, "Clave de acceso incorrecta o ausente", {"WWW-Authenticate": "Bearer"})
-    return match
+def authorize(request: IncomingRequest) -> Identity:
+    token = request.cookies.get(COOKIE)
+    if request.method not in ("GET", "HEAD", "OPTIONS"):
+        require_origin(request)
+    if not re.fullmatch(r"[A-Za-z0-9_-]{43}", token or ""):
+        raise HTTPException(401, "Inicia sesión para continuar.")
+    query = Request("http://monitor:8000/internal/session", headers={"Cookie": f"{COOKIE}={token}"})
+    try:
+        with urlopen(query, timeout=2) as result:
+            return Identity(**json.load(result))
+    except HTTPError as error:
+        if error.code == 401:
+            raise HTTPException(401, "Tu sesión no está activa.") from error
+        raise HTTPException(503, "Autenticación temporalmente no disponible.") from error
+    except (URLError, TimeoutError) as error:
+        raise HTTPException(503, "Autenticación temporalmente no disponible.") from error
 
 
 def admin(identity: Annotated[Identity, Depends(authorize)]) -> Identity:

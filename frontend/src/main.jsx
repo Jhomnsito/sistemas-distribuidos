@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./style.css";
 import Operations from "./operations.jsx";
 import vayxerMark from "./vayxer.svg?no-inline";
+import ThemeToggle from "./theme.jsx";
 
 const states = [
   ["pendiente", "Pendiente", "clock"],
@@ -48,8 +49,8 @@ function Icon({ name, size = 20 }) {
   );
 }
 
-async function api(path, token, method = "GET", body, key) {
-  const headers = { Authorization: "Bearer " + token };
+async function api(path, method = "GET", body, key) {
+  const headers = {};
   if (body) {
     headers["Content-Type"] = "application/json";
     headers["Idempotency-Key"] = key;
@@ -224,9 +225,9 @@ function OrderDialog({ record, remove, save, close }) {
 }
 
 function App() {
-  const [token, setToken] = useState("");
   const [role, setRole] = useState("");
-  const [entry, setEntry] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [orders, setOrders] = useState([]);
   const [node, setNode] = useState(null);
   const [page, setPage] = useState(0);
@@ -238,29 +239,24 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState(null);
 
-  async function refresh(activeToken = token, activePage = page) {
+  async function refresh(activePage = page) {
     setBusy(true);
     setError("");
     try {
-      const session = token ? null : await api("/api/session", activeToken);
       const result = await api(
         "?limit=" + (pageSize + 1) + "&offset=" + activePage * pageSize,
-        activeToken,
       );
       if (activePage > 0 && !result.data.length)
-        return await refresh(activeToken, activePage - 1);
+        return await refresh(activePage - 1);
       setOrders(result.data.slice(0, pageSize));
       setMore(result.data.length > pageSize);
       setNode(result.node);
       setPage(activePage);
-      setToken(activeToken);
-      if (session) setRole(session.data.role);
-      setEntry("");
     } catch (failure) {
       setNode(null);
       setError(failure.message || "No se pudo consultar el servicio.");
       if (failure.status === 401) {
-        setToken("");
+        setRole("");
         setOrders([]);
       }
     } finally {
@@ -271,7 +267,6 @@ function App() {
   async function save(record, remove, { body, key }) {
     await api(
       record ? "/" + record.id : "",
-      token,
       remove ? "DELETE" : record ? "PUT" : "POST",
       body,
       key,
@@ -284,7 +279,55 @@ function App() {
           ? "Pedido actualizado."
           : "Pedido registrado.",
     );
-    await refresh(token, record ? page : 0);
+    await refresh(record ? page : 0);
+  }
+
+  useEffect(() => {
+    api("/api/auth/session")
+      .then(({ data }) => {
+        setRole(data.role);
+        refresh(0);
+      })
+      .catch((failure) => {
+        if (failure.status !== 401) setError(failure.message);
+      });
+  }, []);
+
+  async function login(event) {
+    event.preventDefault();
+    if (window.location.protocol !== "https:") {
+      setPassword("");
+      setError("Abre Vayxer por HTTPS para iniciar sesión.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const { data } = await api("/api/auth/login", "POST", {
+        username,
+        password,
+      });
+      if (data.role === "admin") {
+        window.location.assign("/operaciones");
+      } else {
+        setRole(data.role);
+        await refresh(0);
+      }
+    } catch (failure) {
+      setError(failure.message);
+    } finally {
+      setPassword("");
+      setBusy(false);
+    }
+  }
+
+  async function logout() {
+    try {
+      await api("/api/auth/logout", "POST");
+      window.location.assign("/");
+    } catch (failure) {
+      setError(failure.message);
+    }
   }
 
   const term = search.trim().toLocaleLowerCase("es");
@@ -312,71 +355,77 @@ function App() {
               Vayxer<small>GESTIÓN LOGÍSTICA</small>
             </div>
           </div>
-          {token && (
-            <div className="header-actions">
-              {role === "admin" && (
-                <a className="signout" href="/operaciones">
-                  Operaciones
-                </a>
-              )}
-              <span className="node">
-                <i className={node ? "online" : ""} />
-                {node ? "Última respuesta · " + node : "Sin confirmación"}
-              </span>
-              <button
-                className="signout"
-                disabled={busy}
-                onClick={() => {
-                  setToken("");
-                  setOrders([]);
-                  setNode(null);
-                  setPage(0);
-                  setError("");
-                  setSearch("");
-                  setState("");
-                  setNotice("");
-                }}
-              >
-                Cerrar sesión
-              </button>
-            </div>
-          )}
+          <div className="header-actions">
+            <ThemeToggle />
+            {role && (
+              <>
+                {role === "admin" && (
+                  <a className="signout" href="/operaciones">
+                    Operaciones
+                  </a>
+                )}
+                <span
+                  className="node"
+                  role="status"
+                  title={
+                    role === "admin" && node
+                      ? "Última consulta atendida por " + node
+                      : "Estado de la última consulta de pedidos"
+                  }
+                >
+                  <i className={!busy && node ? "online" : ""} aria-hidden="true" />
+                  {busy ? "Comprobando conexión" : !node ? "Conexión interrumpida" : role === "admin" ? "Última respuesta · " + node : "En línea"}
+                </span>
+                <button className="signout" disabled={busy} onClick={logout}>
+                  Cerrar sesión
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </header>
-      <main className={token ? "shell" : "shell access-layout"}>
-        {token && (
+      <main className={role ? "shell" : "shell access-layout"}>
+        {role && (
           <section className="hero">
             <div>
               <p className="eyebrow">CENTRO DE OPERACIONES</p>
               <h1>Control de pedidos</h1>
               <p>Registra envíos y acompaña cada pedido hasta su entrega.</p>
             </div>
-            {token && (
+            {role && (
               <button className="primary" onClick={() => setDialog({})}>
                 <Icon name="plus" /> Nuevo pedido
               </button>
             )}
           </section>
         )}
-        {!token ? (
+        {!role ? (
           <section className="panel login">
             <p className="eyebrow">CONTROL DE PEDIDOS</p>
             <h1>Acceso al panel</h1>
-            <p>Ingresa tu clave de cliente o administrador.</p>
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                refresh(entry.trim(), 0);
-              }}
-            >
+            <p>Ingresa con la cuenta que te asignó administración.</p>
+            <form onSubmit={login}>
               <label>
-                Clave de acceso
+                Usuario
                 <input
-                  type="password"
-                  autoComplete="off"
+                  name="username"
+                  autoComplete="username"
                   required
-                  value={entry}
-                  onChange={(event) => setEntry(event.target.value)}
+                  maxLength={40}
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                />
+              </label>
+              <label>
+                Contraseña
+                <input
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  maxLength={128}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
                 />
               </label>
               {error && (
@@ -575,14 +624,14 @@ function App() {
                   <button
                     className="secondary"
                     disabled={busy || !page}
-                    onClick={() => refresh(token, page - 1)}
+                    onClick={() => refresh(page - 1)}
                   >
                     Anterior
                   </button>
                   <button
                     className="secondary"
                     disabled={busy || !more}
-                    onClick={() => refresh(token, page + 1)}
+                    onClick={() => refresh(page + 1)}
                   >
                     Siguiente
                   </button>

@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param([switch]$NoBrowser)
 
 $ErrorActionPreference = 'Stop'
@@ -45,41 +45,58 @@ try {
 
     if (-not (Test-Path -LiteralPath '.env')) {
         Write-Host 'Preparando la configuración local...'
-        $py = Get-Command py.exe -ErrorAction SilentlyContinue
-        $python = Get-Command python.exe -ErrorAction SilentlyContinue
-        if ($py) {
-            & $py.Source -3 deploy/setup.py
-        } elseif ($python -and $python.Source -notlike '*\WindowsApps\*') {
-            & $python.Source deploy/setup.py
-        } else {
-            throw 'Instala Python 3.11 o posterior y vuelve a ejecutar Vayxer. Se usa para crear el archivo .env en el primer inicio.'
-        }
-        if ($LASTEXITCODE -ne 0) { throw 'No se pudo preparar .env. Comprueba tu instalación de Python y los permisos de la carpeta.' }
+        $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+        try {
+            $values = foreach ($name in @('POSTGRES_PASSWORD','APP_PASSWORD','REPL_PASSWORD','DATA_KEY')) {
+                $bytes = New-Object byte[] 32
+                $rng.GetBytes($bytes)
+                $value = [Convert]::ToBase64String($bytes).Replace('+','-').Replace('/','_')
+                "$name=$value"
+            }
+            $stream = [IO.File]::Open((Join-Path $root '.env'),[IO.FileMode]::CreateNew,[IO.FileAccess]::Write)
+            try {
+                $writer = New-Object IO.StreamWriter($stream,[Text.UTF8Encoding]::new($false))
+                try { $writer.WriteLine(($values -join "`n")) } finally { $writer.Dispose() }
+            } finally { $stream.Dispose() }
+        } finally { $rng.Dispose() }
+    }
+
+    $tls = Join-Path $root 'local-tls'
+    $cert = Join-Path $tls 'cert.pem'
+    $key = Join-Path $tls 'key.pem'
+    if (-not (Test-Path -LiteralPath $cert) -and -not (Test-Path -LiteralPath $key)) {
+        Write-Host 'Preparando un certificado HTTPS para este equipo...'
+        New-Item -ItemType Directory -Path $tls -Force | Out-Null
+        docker compose run --rm --build --no-deps -T --user 0 --volume "${tls}:/tls" monitor python tls_setup.py
+        if ($LASTEXITCODE -ne 0) { throw 'No se pudo generar el certificado HTTPS. Revisa Docker Desktop.' }
+    }
+    if (-not (Test-Path -LiteralPath $cert) -or -not (Test-Path -LiteralPath $key)) {
+        throw 'El certificado HTTPS está incompleto. Conserva o restaura cert.pem y key.pem según el README.'
     }
 
     Write-Host 'Preparando Vayxer. El primer arranque puede tardar unos minutos...'
-    docker compose config --quiet
+    $profile = @('-f', 'compose.yaml', '-f', 'tls.compose.yaml')
+    docker compose @profile config --quiet
     if ($LASTEXITCODE -ne 0) { throw 'Revisa la configuración local con docker compose config --quiet.' }
-    docker compose up -d --wait --wait-timeout 180
+    docker compose @profile up -d --wait --wait-timeout 180
     if ($LASTEXITCODE -ne 0) {
-        docker compose ps -a
+        docker compose @profile ps -a
         throw 'Revisa Docker Desktop y los registros con docker compose logs --tail 40. Si el puerto está ocupado, cambia PORT en .env.'
     }
 
-    $ports = @(docker compose port gateway 80 2>$null)
+    $ports = @(docker compose @profile port gateway 443 2>$null)
     $portExit = $LASTEXITCODE
     $binding = ([string]($ports | Select-Object -First 1)).Trim()
     if ($portExit -ne 0 -or $binding -notmatch '^127\.0\.0\.1:(\d+)$') {
-        throw 'No se encontró el puerto HTTP local. Comprueba el servicio gateway y la variable PORT de .env.'
+        throw 'No se encontró el puerto HTTPS local. Comprueba el servicio gateway y la variable TLS_PORT de .env.'
     }
-    $url = "http://127.0.0.1:$($Matches[1])"
+    $url = "https://127.0.0.1:$($Matches[1])"
     $deadline = [DateTime]::UtcNow.AddSeconds(35)
     $ready = $false
     do {
         try {
-            $response = Invoke-WebRequest -Uri "$url/api/ready" -UseBasicParsing -TimeoutSec 3
-            $health = $response.Content | ConvertFrom-Json
-            if ($response.StatusCode -eq 200 -and $health.status -eq 'ready') {
+            $body = curl.exe --cacert local-tls/cert.pem --fail --silent --max-time 3 "$url/api/ready"
+            if ($LASTEXITCODE -eq 0 -and ($body | ConvertFrom-Json).status -eq 'ready') {
                 $ready = $true
                 break
             }
@@ -91,8 +108,48 @@ try {
     if (-not $ready) {
         throw 'La API no confirmó disponibilidad. Revisa docker compose ps y docker compose logs --tail 40.'
     }
+    docker compose @profile exec -T monitor python auth_store.py --needs-setup
+    $setupStatus = $LASTEXITCODE
+    if ($setupStatus -eq 3) {
+        Write-Host 'Define las contraseñas de las cuentas iniciales. La terminal no mostrará lo que escribas.'
+        docker compose @profile exec monitor python auth_store.py --initial
+        if ($LASTEXITCODE -ne 0) { throw 'No se completó la configuración de las cuentas. Vuelve a abrir Vayxer desde una terminal interactiva.' }
+    } elseif ($setupStatus -ne 0) {
+        throw 'No se pudo comprobar el estado de las cuentas iniciales.'
+    }
+
     Write-Host "Vayxer listo en $url"
-    if (-not $NoBrowser) { Start-Process $url }
+    if (-not $NoBrowser) {
+        $edge = @(
+            (Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'),
+            (Join-Path $env:ProgramFiles 'Microsoft/Edge/Application/msedge.exe'),
+            (Join-Path $env:LOCALAPPDATA 'Microsoft/Edge/Application/msedge.exe')
+        ) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+        if (-not $edge) {
+            throw 'Microsoft Edge no está instalado en una ruta conocida. Instálalo y vuelve a abrir Vayxer.'
+        }
+
+        # HTTPS readiness already validated the loopback host with this certificate.
+        $pinCode = "import sys,base64,hashlib; from cryptography import x509; from cryptography.hazmat.primitives.serialization import Encoding,PublicFormat; key=x509.load_pem_x509_certificate(sys.stdin.buffer.read()).public_key(); print(base64.b64encode(hashlib.sha256(key.public_bytes(Encoding.DER,PublicFormat.SubjectPublicKeyInfo)).digest()).decode())"
+        $pins = @(Get-Content -LiteralPath $cert -Raw | docker compose @profile exec -T monitor python -c $pinCode)
+        $pinExit = $LASTEXITCODE
+        $pin = ([string]($pins | Select-Object -First 1)).Trim()
+        if ($pinExit -ne 0 -or $pin -notmatch '^[A-Za-z0-9+/]{43}=$') {
+            throw 'No se pudo verificar la clave pública del certificado para Microsoft Edge.'
+        }
+        $hasher = [Security.Cryptography.SHA256]::Create()
+        try {
+            $thumb = [BitConverter]::ToString($hasher.ComputeHash([IO.File]::ReadAllBytes($cert))).Replace('-','')
+        } finally { $hasher.Dispose() }
+        $edgeProfile = Join-Path $env:LOCALAPPDATA "Vayxer/Edge/$thumb"
+        Start-Process -FilePath $edge -ArgumentList @(
+            ('--user-data-dir="' + $edgeProfile + '"'),
+            "--ignore-certificate-errors-spki-list=$pin",
+            '--no-first-run',
+            '--new-window',
+            $url
+        )
+    }
     exit 0
 } catch {
     Write-Host "Vayxer: $($_.Exception.Message)" -ForegroundColor Red

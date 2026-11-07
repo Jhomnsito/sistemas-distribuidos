@@ -1,22 +1,34 @@
+import getpass
 import json
 import os
 import subprocess
 import time
 import unittest
+from functools import lru_cache
+from http.cookies import SimpleCookie
 from concurrent.futures import ThreadPoolExecutor
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from uuid import uuid4
 
 
-TOKEN = os.environ["APP_TOKEN"]
-CLIENTS = json.loads(os.environ["CLIENT_TOKENS"])
-URL = os.getenv("TEST_URL", "http://127.0.0.1:8080")
+PASSWORDS = json.loads(os.getenv("TEST_AUTH", "{}"))
+URL = os.getenv("TEST_URL", "https://127.0.0.1:8443")
 FIELDS = {"customer": "Prueba automática", "item": "Caja de control", "quantity": 3}
 
 
-def request(method, path, data=None, key=None, token=TOKEN):
-    headers = {"Authorization": "Bearer " + token}
+@lru_cache
+def login(username="esteban_admin"):
+    password = PASSWORDS.get(username) or getpass.getpass(f"Contraseña de prueba ({username}): ")
+    data = json.dumps({"username": username, "password": password}).encode()
+    req = Request(URL + "/api/auth/login", data, {"Content-Type": "application/json"}, method="POST")
+    with urlopen(req, timeout=12) as response:
+        return SimpleCookie(response.headers["Set-Cookie"])["vayxer_session"].value
+
+
+def request(method, path, data=None, key=None, token=None):
+    token = login() if token is None and path not in ("/live", "/ready") else token
+    headers = {"Cookie": "vayxer_session=" + token} if token else {}
     if data is not None:
         headers.update({"Content-Type": "application/json", "Idempotency-Key": str(key or uuid4())})
     req = Request(URL + "/api" + path, json.dumps(data).encode() if data is not None else None,
@@ -117,7 +129,7 @@ class IntegrationTest(unittest.TestCase):
 
 
     def test_client_ownership_and_operations_access(self):
-        alba, bruno = CLIENTS["demo-alba"], CLIENTS["demo-bruno"]
+        alba, bruno = login("esteban_cliente"), login("cliente_pruebas")
         self.assertEqual(request("GET", "/session", token=alba)[1]["role"], "cliente")
         key = uuid4()
         status, order, _ = request("POST", "/orders", FIELDS, key, token=alba)
@@ -151,3 +163,22 @@ class IntegrationTest(unittest.TestCase):
         expect_replica("SELECT (response ? 'sealed' AND NOT (response ? 'customer') AND fingerprint LIKE 'v1.%')"
                        " FROM request_log WHERE key = '" + str(key) + "'", "t")
         self.assertEqual(request("POST", "/orders", FIELDS, key)[1], record)
+
+    def test_account_control_requires_admin_and_revokes_sessions(self):
+        client = login("esteban_cliente")
+        target = login("cliente_pruebas")
+        route = "/auth/accounts/cliente_pruebas"
+        self.assertEqual(request("PUT", route, {"blocked": True}, token=client)[0], 403)
+        self.assertEqual(request("PUT", "/auth/accounts/esteban_admin", {"blocked": True})[0], 409)
+        try:
+            self.assertEqual(request("PUT", route, {"blocked": True})[0], 200)
+            self.assertEqual(request("GET", "/orders", token=target)[0], 401)
+        finally:
+            self.assertEqual(request("PUT", route, {"blocked": False})[0], 200)
+            login.cache_clear()
+        self.assertEqual(request("GET", "/orders", token=target)[0], 401)
+        self.assertEqual(request("GET", "/orders", token=login("cliente_pruebas"))[0], 200)
+        status, summary, _ = request("GET", "/ops/summary")
+        self.assertEqual(status, 200)
+        actions = {row["action"] for row in summary["access"]["events"]}
+        self.assertTrue({"cuenta_bloqueada", "cuenta_desbloqueada"} <= actions)

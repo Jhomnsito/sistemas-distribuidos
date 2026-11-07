@@ -4,15 +4,20 @@ client_max_body_size 16k;
 add_header X-Content-Type-Options nosniff always;
 add_header Referrer-Policy no-referrer always;
 add_header Content-Security-Policy "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'" always;
-location /api/ops/ {
+location ~ ^/api/(ops|auth)/ {
     resolver 127.0.0.11 valid=5s ipv6=off;
     set $observer http://monitor:8000;
     proxy_pass $observer;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
     proxy_connect_timeout 1s;
     proxy_read_timeout 6s;
 }
 location /api/ {
     proxy_pass http://order_api;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-Proto $scheme;
     proxy_http_version 1.1;
     proxy_connect_timeout 1s;
     proxy_read_timeout 8s;

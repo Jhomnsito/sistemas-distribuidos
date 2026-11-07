@@ -1,8 +1,12 @@
 :root {
   font-family: Inter, system-ui, sans-serif;
   color: var(--ink);
-  background: #faf3f4;
+  background: var(--page);
   font-synthesis: none;
+  color-scheme: light;
+  --page: #faf3f4;
+  --surface: #ffffff;
+  --field: #ffffff;
   --ink: #2b1b21;
   --muted: #66505a;
   --line: #e9d9de;
@@ -10,6 +14,50 @@
   --control-line: #987e88;
   --accent-soft: #fbecef;
   --accent: #a91738;
+  --accent-ink: #981733;
+  --focus: #ba2043;
+  --secondary-line: #a48c95;
+  --table-head: #f6e8ec;
+  --table-head-ink: #56313d;
+  --row-action: #643645;
+  --error-bg: #fff0f1;
+  --error-ink: #892530;
+  --pending-bg: #fff1d9;
+  --pending-ink: #784c08;
+  --processing-bg: #e4f5f4;
+  --processing-ink: #145b61;
+  --shipped-bg: #f2ebff;
+  --shipped-ink: #623c9c;
+  --delivered-bg: #ddf6ec;
+  --delivered-ink: #166144;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #181818;
+  --surface: #242424;
+  --field: #1c1c1c;
+  --ink: #f4f4f4;
+  --muted: #c8c8c8;
+  --line: #444444;
+  --header: #5f0404;
+  --control-line: #929292;
+  --accent-soft: #40212e;
+  --accent-ink: #ff9bb0;
+  --focus: #ff9bb0;
+  --secondary-line: #9e798b;
+  --table-head: #303030;
+  --table-head-ink: #ececec;
+  --row-action: #f3d8e4;
+  --error-bg: #481e2a;
+  --error-ink: #ffb2c2;
+  --pending-bg: #4b361a;
+  --pending-ink: #ffe0a2;
+  --processing-bg: #1a3839;
+  --processing-ink: #b5ede8;
+  --shipped-bg: #362644;
+  --shipped-ink: #e7ccff;
+  --delivered-bg: #19372d;
+  --delivered-ink: #b4f1d2;
 }
 * {
   box-sizing: border-box;
@@ -32,7 +80,7 @@ button:disabled {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid #ba2043;
+  outline: 3px solid var(--focus);
   outline-offset: 3px;
 }
 .shell {
@@ -64,6 +112,8 @@ select:focus-visible {
 }
 .bar {
   min-height: 72px;
+  gap: 10px;
+  padding-block: 8px;
 }
 .brand {
   gap: 11px;
@@ -85,7 +135,9 @@ select:focus-visible {
   margin-top: 3px;
 }
 .header-actions {
-  gap: 18px;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 .node {
   display: flex;
@@ -130,7 +182,7 @@ select:focus-visible {
 }
 .eyebrow {
   margin: 0;
-  color: #981733;
+  color: var(--accent-ink);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.15em;
@@ -160,9 +212,9 @@ select:focus-visible {
   background: #86132c;
 }
 .secondary {
-  background: white;
+  background: var(--surface);
   color: var(--ink);
-  border-color: #a48c95;
+  border-color: var(--secondary-line);
 }
 .secondary:hover:not(:disabled) {
   background: var(--accent-soft);
@@ -172,7 +224,7 @@ select:focus-visible {
   color: white;
 }
 .panel {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 15px;
   box-shadow: 0 4px 16px #42101b0b;
@@ -192,7 +244,7 @@ select:focus-visible {
   color: var(--ink);
 }
 .metric[aria-pressed="true"] {
-  border-color: var(--accent);
+  border-color: var(--accent-ink);
   box-shadow: 0 0 0 1px var(--accent);
 }
 .metric-icon {
@@ -215,20 +267,20 @@ select:focus-visible {
   color: var(--muted);
 }
 .pendiente {
-  background: #fff1d9;
-  color: #784c08;
+  background: var(--pending-bg);
+  color: var(--pending-ink);
 }
 .en_proceso {
-  background: #e4f5f4;
-  color: #145b61;
+  background: var(--processing-bg);
+  color: var(--processing-ink);
 }
 .enviado {
-  background: #f2ebff;
-  color: #623c9c;
+  background: var(--shipped-bg);
+  color: var(--shipped-ink);
 }
 .entregado {
-  background: #ddf6ec;
-  color: #166144;
+  background: var(--delivered-bg);
+  color: var(--delivered-ink);
 }
 .registry-heading {
   padding: 21px 22px 14px;
@@ -260,6 +312,7 @@ select:focus-visible {
 .filters input {
   border: 0;
   background: transparent;
+  color: var(--ink);
   width: 100%;
   padding: 9px 0;
 }
@@ -269,7 +322,7 @@ dialog select,
 .login input {
   border: 1px solid var(--control-line);
   border-radius: 8px;
-  background: white;
+  background: var(--field);
   color: var(--ink);
   padding: 9px 11px;
 }
@@ -298,8 +351,8 @@ td:first-child {
   padding-left: 22px;
 }
 th {
-  background: #f6e8ec;
-  color: #56313d;
+  background: var(--table-head);
+  color: var(--table-head-ink);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -339,9 +392,9 @@ td time {
   display: grid;
   place-items: center;
   padding: 7px;
-  color: #643645;
+  color: var(--row-action);
   border: 1px solid var(--line);
-  background: white;
+  background: var(--surface);
   border-radius: 7px;
 }
 .row-actions button:hover {
@@ -383,8 +436,8 @@ dialog label {
   margin-bottom: 12px;
 }
 .error {
-  background: #fff0f1;
-  color: #892530;
+  background: var(--error-bg);
+  color: var(--error-ink);
   padding: 9px 12px;
   border-radius: 7px;
 }
@@ -392,6 +445,7 @@ dialog label {
   margin: 0 22px 10px;
 }
 dialog {
+  background: var(--surface);
   width: min(92vw, 475px);
   border: 1px solid var(--line);
   border-radius: 15px;
@@ -472,7 +526,7 @@ fieldset {
   letter-spacing: -0.035em;
 }
 .login > .eyebrow {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .mobile-units {
   display: none;
@@ -539,6 +593,10 @@ fieldset {
   }
 }
 
+.signout[aria-pressed="true"] {
+  background: #fbe9ee;
+  color: #42101b;
+}
 a.signout {
   text-decoration: none;
 }
@@ -589,16 +647,16 @@ a.signout {
   font-size: 13px;
 }
 .operativo {
-  background: #ddf6ec;
-  color: #166144;
+  background: var(--delivered-bg);
+  color: var(--delivered-ink);
 }
 .degradado {
-  background: #fff1d9;
-  color: #784c08;
+  background: var(--pending-bg);
+  color: var(--pending-ink);
 }
 .caido {
   background: var(--accent-soft);
-  color: #892530;
+  color: var(--error-ink);
 }
 @media (max-width: 650px) {
   .ops-history {
@@ -610,4 +668,26 @@ a.signout {
   .signout {
     padding-inline: 7px;
   }
+}
+
+
+/* Keep long account names and actions usable in narrow Operations panels. */
+.ops-card li {
+  overflow-wrap: anywhere;
+}
+.ops-card ul {
+  scrollbar-gutter: stable;
+}
+.ops-card li > button {
+  justify-self: start;
+  min-height: 44px;
+}
+.signout {
+  min-height: 36px;
+}
+.login input,
+dialog input,
+dialog select {
+  min-width: 0;
+  width: 100%;
 }

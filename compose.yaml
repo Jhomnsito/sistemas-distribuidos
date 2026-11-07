@@ -4,8 +4,6 @@ x-db-env: &db-env
     PGDATABASE: pedidos
     PGUSER: orders_app
     PGPASSWORD: ${APP_PASSWORD:?Configure APP_PASSWORD}
-    APP_TOKEN: ${APP_TOKEN:?Configure APP_TOKEN}
-    CLIENT_TOKENS: ${CLIENT_TOKENS:?Configure CLIENT_TOKENS}
 x-api: &api
   build: ./backend
   restart: unless-stopped
@@ -37,6 +35,7 @@ services:
     command: ["uvicorn", "monitor:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
     environment:
       <<: *db-env
+      SESSION_TTL: ${SESSION_TTL:-28800}
       REPLICA_HOST: ${REPLICA_HOST:-replica}
     restart: unless-stopped
     networks: [edge, data]

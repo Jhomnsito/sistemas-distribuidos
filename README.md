@@ -2,28 +2,39 @@
 
 Proyecto final académico. Panel React en español, dos APIs FastAPI detrás de NGINX, PostgreSQL con réplica física asíncrona y un monitor con historial persistente.
 
-## Acceso directo en Windows
+## Inicio rápido en Windows
 
-Descomprime el ZIP o clona el repositorio en una carpeta permanente. Ejecuta **Instalar acceso directo.cmd** para crear **Vayxer** en el Escritorio, o abre **Vayxer.cmd** desde la carpeta. Docker Desktop debe estar instalado con contenedores Linux y Compose. El primer inicio requiere Python 3.11 o posterior si aún no existe `.env`. El lanzador espera una respuesta real de la API antes de abrir el navegador. Si mueves la carpeta, vuelve a crear el acceso directo desde su nueva ubicación.
+1. Instala Docker Desktop con contenedores Linux. Descomprime el ZIP o clona el repositorio en una carpeta permanente.
+2. Ejecuta **Vayxer.cmd**. La primera vez prepara HTTPS y pide las contraseñas de `esteban_cliente` y `esteban_admin` con entrada oculta. El lanzador abre Microsoft Edge en un perfil separado tras verificar el certificado local y la API.
+3. Opcionalmente, ejecuta **Instalar acceso directo.cmd**. Después usa **Vayxer** en el Escritorio. Si mueves la carpeta, vuelve a crear el acceso directo.
 
-## Despliegue local
+[Guía breve para el profesor](docs/guia-profesor.md)
+
+## Despliegue manual
 
 Requisitos: Docker con Compose v2, Python 3.11+ y un navegador. Ejecuta desde la raíz.
 
 ```sh
 python deploy/setup.py
-docker compose config --quiet
-docker compose up -d --build --wait
-docker compose ps
+# Prepara local-tls/cert.pem y local-tls/key.pem según el manual técnico.
+docker compose -f compose.yaml -f tls.compose.yaml config --quiet
+docker compose -f compose.yaml -f tls.compose.yaml up -d --build --wait
 ```
 
-Abre **http://127.0.0.1:8080**. En `.env`, `APP_TOKEN` es la clave de administración. `CLIENT_TOKENS` contiene una clave individual para cada cliente de demostración, `demo-alba` y `demo-bruno`. Copia solamente el valor de la clave correspondiente. Los clientes crean y consultan sus pedidos. Administración gestiona todos los pedidos y accede a **Operaciones**, en `/operaciones`, con autenticación separada en la interfaz y control del lado servidor.
+Aprovisiona las dos cuentas iniciales desde una terminal en la carpeta del proyecto. Cada comando solicita y confirma la contraseña sin mostrarla.
 
-Conserva `.env` y una copia protegida de `DATA_KEY` entre reinicios. Para actualizar una instalación previa con datos, sigue el [procedimiento de migración](docs/manual-tecnico.md#migración-de-una-instalación-previa). Para HTTPS local, usa el [perfil TLS](docs/manual-tecnico.md#https-local-opcional). La primera compilación requiere acceso a los registros de imágenes, npm y PyPI.
+```sh
+docker compose exec monitor python auth_store.py esteban_cliente
+docker compose exec monitor python auth_store.py esteban_admin
+```
+
+Usa **https://127.0.0.1:8443** con un certificado de confianza para el navegador. Hay un solo formulario. El servidor determina el rol a partir de la cuenta. Los clientes crean y consultan sus pedidos. Administración entra en **Operaciones** y puede volver a la gestión de pedidos. Para dar de alta otro cliente, un operador autorizado de Docker ejecuta el mismo comando con el nuevo nombre de usuario. Volver a ejecutar el comando para una cuenta existente cambia su contraseña y revoca sus sesiones.
+
+Conserva `.env` y una copia protegida de `DATA_KEY` entre reinicios. Para actualizar una instalación previa con datos, sigue el [procedimiento de migración](docs/manual-tecnico.md#migración-de-una-instalación-previa). Usa el [perfil HTTPS](docs/manual-tecnico.md#https-local). La primera compilación requiere acceso a los registros de imágenes, npm y PyPI.
 
 ```sh
 docker compose exec -T replica psql -U postgres -d pedidos -c "SELECT pg_is_in_recovery(), status FROM pg_stat_wal_receiver"
-curl http://127.0.0.1:8080/api/ready
+curl --cacert local-tls/cert.pem https://127.0.0.1:8443/api/ready
 ```
 
 `docker compose down` conserva datos. Para promover y recuperar PostgreSQL, sigue el [manual técnico](docs/manual-tecnico.md#recuperación-manual-del-primario-en-compose).
@@ -34,13 +45,13 @@ curl http://127.0.0.1:8080/api/ready
 python -m pip install -r backend/requirements.txt
 python -m unittest discover -s tests -p test_domain.py -v
 python -m unittest discover -s tests -p test_vault.py -v
+python -m unittest discover -s tests -p test_auth_store.py -v
 ```
 
-Usa un laboratorio aislado. En PowerShell, desde la raíz:
+Usa un laboratorio aislado. Aprovisiona también `cliente_pruebas` en ese laboratorio para la prueba de propiedad. Las pruebas piden las contraseñas interactivamente. En PowerShell, desde la raíz:
 
 ```powershell
-$env:APP_TOKEN = (Get-Content .env | Where-Object { $_ -like 'APP_TOKEN=*' }).Substring(10)
-$env:CLIENT_TOKENS = (Get-Content .env | Where-Object { $_ -like 'CLIENT_TOKENS=*' }).Substring(14).Trim("'")
+$env:SSL_CERT_FILE = (Resolve-Path local-tls/cert.pem).Path
 python -m unittest discover -s tests -p test_integration.py -v
 python tests/fault.py
 python tests/ops_fault.py
