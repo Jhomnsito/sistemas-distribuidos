@@ -62,7 +62,7 @@ Si cambias el puerto, configura `TEST_URL` con la URL base. Las pruebas de fallo
 
 ## Material de entrega
 
-Las siete capturas del manual se distribuyen solo en el ZIP de entrega, en `Pedidos/docs/capturas`. No se publican imágenes de demostración en este repositorio.
+Las evidencias "capturas del manual se distribuyen solo en el ZIP de entrega" , en `Pedidos/docs/capturas`. .
 
 - [Manual de usuario](docs/manual-usuario.md)
 - [Manual técnico](docs/manual-tecnico.md)
