@@ -1,6 +1,6 @@
 # Vayxer · Sistema distribuido de gestión de pedidos tolerante a fallos
 
-Proyecto final académico. Panel React en español, dos APIs FastAPI detrás de NGINX, PostgreSQL con réplica física asíncrona y un monitor con historial persistente.
+Proyecto final académico. Panel React , dos APIs FastAPI detrás de NGINX, PostgreSQL con réplica física asíncrona, tolerancia a fallos y con historial de monitor persistente.
 
 ## Inicio rápido en Windows
 
