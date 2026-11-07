@@ -8,7 +8,7 @@ Proyecto final académico. Panel React en español, dos APIs FastAPI detrás de 
 2. Ejecuta **Vayxer.cmd**. La primera vez prepara HTTPS y pide las contraseñas de `esteban_cliente` y `esteban_admin` con entrada oculta. Antes de abrir Microsoft Edge, verifica el certificado servido y la API. Si el certificado aún no es de confianza, muestra su huella y pide escribir `SI` para importar únicamente ese certificado al almacén del usuario actual de Windows. Edge usa un perfil separado, sin opciones para ignorar errores de certificados.
 3. Opcionalmente, ejecuta **Instalar acceso directo.cmd**. Después usa **Vayxer** en el Escritorio. Si mueves la carpeta, vuelve a crear el acceso directo.
 
-[Guía breve para el profesor](docs/guia-profesor.md)
+[Guía breve](docs/guia-profesor.md)
 
 ## Despliegue manual
 
