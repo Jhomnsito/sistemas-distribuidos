@@ -1,7 +1,9 @@
 ﻿[CmdletBinding()]
-param([switch]$NoBrowser)
+param([switch]$NoBrowser, [switch]$RenewCertificate)
 
 $ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+$OutputEncoding = [Console]::OutputEncoding
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 Set-Location -LiteralPath $root
 
@@ -74,6 +76,10 @@ try {
         throw 'El certificado HTTPS está incompleto. Conserva o restaura cert.pem y key.pem según el README.'
     }
 
+    if ($RenewCertificate) {
+        & (Join-Path $PSScriptRoot 'Renew-VayxerCertificate.ps1') -TlsDirectory $tls
+    }
+
     Write-Host 'Preparando Vayxer. El primer arranque puede tardar unos minutos...'
     $profile = @('-f', 'compose.yaml', '-f', 'tls.compose.yaml')
     docker compose @profile config --quiet
@@ -129,22 +135,14 @@ try {
             throw 'Microsoft Edge no está instalado en una ruta conocida. Instálalo y vuelve a abrir Vayxer.'
         }
 
-        # HTTPS readiness already validated the loopback host with this certificate.
-        $pinCode = "import sys,base64,hashlib; from cryptography import x509; from cryptography.hazmat.primitives.serialization import Encoding,PublicFormat; key=x509.load_pem_x509_certificate(sys.stdin.buffer.read()).public_key(); print(base64.b64encode(hashlib.sha256(key.public_bytes(Encoding.DER,PublicFormat.SubjectPublicKeyInfo)).digest()).decode())"
-        $pins = @(Get-Content -LiteralPath $cert -Raw | docker compose @profile exec -T monitor python -c $pinCode)
-        $pinExit = $LASTEXITCODE
-        $pin = ([string]($pins | Select-Object -First 1)).Trim()
-        if ($pinExit -ne 0 -or $pin -notmatch '^[A-Za-z0-9+/]{43}=$') {
-            throw 'No se pudo verificar la clave pública del certificado para Microsoft Edge.'
-        }
+        & (Join-Path $PSScriptRoot 'Trust-VayxerCertificate.ps1') -CertificatePath $cert -Port ([int]([Uri]$url).Port)
         $hasher = [Security.Cryptography.SHA256]::Create()
         try {
             $thumb = [BitConverter]::ToString($hasher.ComputeHash([IO.File]::ReadAllBytes($cert))).Replace('-','')
         } finally { $hasher.Dispose() }
-        $edgeProfile = Join-Path $env:LOCALAPPDATA "Vayxer/Edge/$thumb"
+        $edgeProfile = Join-Path $env:LOCALAPPDATA "Vayxer/Edge/trusted-$thumb"
         Start-Process -FilePath $edge -ArgumentList @(
             ('--user-data-dir="' + $edgeProfile + '"'),
-            "--ignore-certificate-errors-spki-list=$pin",
             '--no-first-run',
             '--new-window',
             $url

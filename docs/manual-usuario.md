@@ -1,54 +1,68 @@
 # Manual de usuario · Vayxer
 
-Las capturas de demostración se incluyen en el ZIP de entrega.
+Las siete capturas se incluyen exclusivamente en el ZIP de entrega, dentro de `Pedidos/docs/capturas`. El repositorio público conserva este manual sin publicar las imágenes.
 
 ## Instalación y acceso
 
-En Windows puedes usar **Instalar acceso directo.cmd** y abrir **Vayxer** desde el Escritorio. La primera vez, el lanzador prepara HTTPS y pide las contraseñas de las cuentas iniciales con entrada oculta. En las siguientes visitas conserva la configuración y abre el panel cuando la API confirma que está disponible.
+En Windows, instala Docker Desktop con contenedores Linux y descomprime el proyecto en una carpeta permanente. Ejecuta **Vayxer.cmd**. El primer inicio prepara HTTPS y solicita las contraseñas iniciales con entrada oculta. Antes de abrir Edge, verifica el certificado local y pide aceptación para agregarlo al almacén de confianza de tu usuario de Windows. Escribe `SI` solo si autorizas ese cambio. En los siguientes inicios conserva la configuración.
 
-1. Descomprime la entrega y abre una terminal en la carpeta `Pedidos`.
-2. Genera la configuración con `python deploy/setup.py`.
-3. Prepara el perfil HTTPS y aprovisiona las cuentas según el README.
-4. Abre **https://127.0.0.1:8443**. Escribe tu usuario y contraseña y pulsa **Entrar al panel**. El servidor selecciona tu vista según tu cuenta.
+Ejecuta **Instalar acceso directo.cmd** para abrir Vayxer desde el Escritorio. Si mueves la carpeta, vuelve a crear el acceso directo. Para otros entornos, sigue el [despliegue manual del README](../README.md#despliegue-manual).
 
+Abre **https://127.0.0.1:8443**, escribe usuario y contraseña y pulsa **Entrar al panel**. El servidor determina el rol de la cuenta. Tres fallos consecutivos producen una pausa de cinco segundos para ese nombre de usuario. Las sesiones ya abiertas siguen funcionando.
+
+Captura 1 del paquete: Acceso con usuario y contraseña.
 
 ## Consultar y registrar
 
-Cada cliente ve sus propios pedidos. Administración puede ver todos, incluidos los registros anteriores a la incorporación de cuentas.
+Cada cliente consulta sus propios pedidos. Administración puede ver todos, incluidos los registros anteriores a las cuentas.
 
-- El registro muestra los pedidos recientes y el nodo que respondió a la última consulta exitosa. **Actualizar** vuelve a consultar la página.
-- Usa la búsqueda para encontrar un cliente, producto o identificador. Las tarjetas y el selector filtran los pedidos cargados en la página actual. Usa **Anterior** o **Siguiente** para consultar otras páginas.
-- Pulsa **Nuevo pedido**. Escribe cliente, producto y unidades de 1 a 999. **Guardar pedido** crea un registro en estado **Pendiente**.
+- **Actualizar** vuelve a consultar la página. El cliente ve el estado de conexión; administración también ve qué nodo respondió a la última consulta válida.
+- La búsqueda y el selector filtran los pedidos cargados. Usa **Anterior** o **Siguiente** para consultar otras páginas.
+- **Nuevo pedido** abre el formulario. Escribe cliente, producto y unidades de 1 a 999. **Guardar pedido** crea el registro en estado **Pendiente**.
 
+Captura 2 del paquete: Registro de pedidos con datos ficticios.
 
+Captura 3 del paquete: Formulario de creación.
 
 ## Editar y eliminar como administrador
 
-- Pulsa el lápiz de la fila. Puedes corregir los datos y avanzar un estado. El flujo es **Pendiente → En proceso → Enviado → Entregado**. Pulsa **Guardar pedido**.
-- Para eliminar, pulsa la papelera, revisa el cliente y producto y confirma con **Eliminar pedido**.
-- Si otro operador modificó el pedido, cierra el formulario, actualiza y vuelve a abrirlo.
-- Si el panel no pudo confirmar una operación, usa **Reintentar** para consultar el resultado de la misma solicitud. Si eliges **Cerrar y actualizar**, revisa el registro antes de volver a crear el pedido.
+- El lápiz permite corregir datos y avanzar un estado: **Pendiente → En proceso → Enviado → Entregado**.
+- La papelera abre una confirmación. Revisa cliente y producto antes de pulsar **Eliminar pedido**.
+- Si otro operador cambió el registro, cierra el formulario, actualiza y vuelve a abrirlo.
+- Si una operación no pudo confirmarse, **Reintentar** conserva la misma solicitud. Si eliges **Cerrar y actualizar**, revisa el registro antes de crear otro pedido.
 
+Captura 4 del paquete: Confirmación de borrado de un pedido ficticio.
 
-En pantallas pequeñas, cada pedido se organiza como una ficha con el estado, las unidades, la fecha y las acciones de editar y eliminar a la vista.
+En pantallas pequeñas, los pedidos se presentan como fichas con sus acciones.
 
+Captura 5 del paquete: Gestión de pedidos en móvil.
 
-Pulsa **Cerrar sesión** al terminar. El token permanece en memoria mientras el panel está abierto. Para apagar el laboratorio, ejecuta `docker compose down`.
+## Operaciones y cuentas cliente
 
-## Operaciones
+Administración puede abrir **Operaciones** con su misma sesión. La página presenta la última sonda de cada servicio, cambios de salud, auditoría de pedidos sin datos personales y actividad de acceso.
 
-En el panel de pedidos, administración puede abrir **Operaciones** con su misma sesión. La página muestra la última sonda de cada servicio, el historial de cambios de salud y la actividad de pedidos sin datos personales.
+Captura 6 del paquete: Salud e historial de operaciones.
 
+En **Cuentas cliente**, **Bloquear** requiere confirmación y revoca todas las sesiones de esa cuenta. **Desbloquear** permite un nuevo inicio de sesión con la misma contraseña. Las cuentas administrativas no pueden bloquearse desde esta función.
 
-Si una API se detiene, puedes seguir registrando y consultando pedidos mediante la API sana. Si la base queda inaccesible, la actividad de pedidos se suspende y Operaciones conserva el historial de salud mientras el gateway y el monitor respondan. Si cae el gateway, espera su recuperación antes de volver a abrir el panel.
+Si cae una API, la otra puede atender pedidos. Si PostgreSQL queda inaccesible, el CRUD se suspende y Operaciones conserva salud y actividad de acceso mientras gateway y monitor respondan. Si cae el monitor, no se pueden validar sesiones. Si cae el gateway, espera su recuperación.
 
-El [arte panorámico de Vayxer](identidad/vayxer-art.webp) se conserva como recurso de identidad. La interfaz usa el monograma en el encabezado y en el favicon.
+Pulsa **Cerrar sesión** al terminar. El servidor revoca la sesión y elimina la cookie protegida; JavaScript no puede leerla. `docker compose -f compose.yaml -f tls.compose.yaml down` apaga el laboratorio conservando los datos.
 
-Si fallas tres veces seguidas al ingresar la contraseña, espera cinco segundos antes de volver a intentarlo.
+## Capturas e identidad
 
+Las capturas del 6 de noviembre de 2026 usan datos ficticios. Las figuras 2 a 6 corresponden a la revisión previa del panel y conservan el monograma anterior; documentan el flujo CRUD, no las nuevas vistas de control de cuentas. Las figuras 1 y 7 muestran el acceso actualizado con la flecha angular y el selector de tema. La interfaz actual admite modo claro y oscuro y conserva la preferencia local.
 
-## Actividad de acceso y cuentas cliente
+Captura 7 del paquete: Acceso actualizado en móvil.
 
-En Operaciones, administración puede consultar «Actividad de acceso» y revisar la lista de cuentas. «Bloquear» pide confirmación y cierra las sesiones de esa cuenta. «Desbloquear» permite que el cliente vuelva a iniciar sesión. La contraseña se conserva. Las cuentas de administración están protegidas contra esta acción.
+El [arte panorámico](identidad/vayxer-art.webp) se conserva como recurso de identidad. El encabezado, favicon y acceso directo usan la flecha angular.
 
-Los tres fallos de contraseña producen una pausa temporal de cinco segundos para ese nombre de usuario. Las sesiones que ya estaban abiertas siguen funcionando. La pausa no depende de la dirección IP ni se reinicia al cambiar cookies.
+| Captura | Archivo dentro de `Pedidos/docs/capturas` |
+|---|---|
+| 1 · Acceso | `01-acceso.png` |
+| 2 · Registro de pedidos | `02-panel.png` |
+| 3 · Formulario de creación | `03-nuevo.png` |
+| 4 · Confirmación de borrado | `04-confirmar.png` |
+| 5 · Gestión en móvil | `05-movil.png` |
+| 6 · Operaciones | `06-operaciones.png` |
+| 7 · Acceso en móvil | `07-acceso-movil.png` |

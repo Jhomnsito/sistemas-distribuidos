@@ -5,14 +5,14 @@ Proyecto final académico. Panel React en español, dos APIs FastAPI detrás de 
 ## Inicio rápido en Windows
 
 1. Instala Docker Desktop con contenedores Linux. Descomprime el ZIP o clona el repositorio en una carpeta permanente.
-2. Ejecuta **Vayxer.cmd**. La primera vez prepara HTTPS y pide las contraseñas de `esteban_cliente` y `esteban_admin` con entrada oculta. El lanzador abre Microsoft Edge en un perfil separado tras verificar el certificado local y la API.
+2. Ejecuta **Vayxer.cmd**. La primera vez prepara HTTPS y pide las contraseñas de `esteban_cliente` y `esteban_admin` con entrada oculta. Antes de abrir Microsoft Edge, verifica el certificado servido y la API. Si el certificado aún no es de confianza, muestra su huella y pide escribir `SI` para importar únicamente ese certificado al almacén del usuario actual de Windows. Edge usa un perfil separado, sin opciones para ignorar errores de certificados.
 3. Opcionalmente, ejecuta **Instalar acceso directo.cmd**. Después usa **Vayxer** en el Escritorio. Si mueves la carpeta, vuelve a crear el acceso directo.
 
 [Guía breve para el profesor](docs/guia-profesor.md)
 
 ## Despliegue manual
 
-Requisitos: Docker con Compose v2, Python 3.11+ y un navegador. Ejecuta desde la raíz.
+Requisitos: Docker con Compose 2.24.4 o posterior, Python 3.11+ y un navegador. Ejecuta desde la raíz.
 
 ```sh
 python deploy/setup.py
@@ -46,6 +46,7 @@ python -m pip install -r backend/requirements.txt
 python -m unittest discover -s tests -p test_domain.py -v
 python -m unittest discover -s tests -p test_vault.py -v
 python -m unittest discover -s tests -p test_auth_store.py -v
+python -m unittest discover -s tests -p test_tls_verify.py -v
 ```
 
 Usa un laboratorio aislado. Aprovisiona también `cliente_pruebas` en ese laboratorio para la prueba de propiedad. Las pruebas piden las contraseñas interactivamente. En PowerShell, desde la raíz:
@@ -60,6 +61,8 @@ python tests/ops_fault.py
 Si cambias el puerto, configura `TEST_URL` con la URL base. Las pruebas de fallo detienen `api-a` y vuelven a iniciarlo. La prueba de Operaciones también reinicia el monitor para verificar que conserva los eventos.
 
 ## Material de entrega
+
+Las siete capturas del manual se distribuyen solo en el ZIP de entrega, en `Pedidos/docs/capturas`. No se publican imágenes de demostración en este repositorio.
 
 - [Manual de usuario](docs/manual-usuario.md)
 - [Manual técnico](docs/manual-tecnico.md)

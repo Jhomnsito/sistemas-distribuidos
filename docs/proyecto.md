@@ -22,7 +22,7 @@ Para tres integrantes, D se reparte entre A, B y C. Cada persona utiliza una ram
 - C · estructura visual, formularios y estados, accesibilidad y manual de usuario.
 - D · pruebas de integración, análisis de métricas, trazabilidad y revisión de empaquetado.
 
-Cuando el equipo tenga un remoto GitHub o GitLab, acuerde el repositorio y el acceso, use ramas por tarea y revise contribuciones con `git shortlog -sne --all` y `git log --oneline --all`. La revisión final debe comprobar las contribuciones sustantivas por integrante. Los commits de la entrega inicial no cuentan como contribuciones de los integrantes. El requisito se comprueba con trabajo real del equipo.
+El repositorio es [Jhomnsito/sistemas-distribuidos](https://github.com/Jhomnsito/sistemas-distribuidos). El equipo debe usar ramas por tarea y revisar contribuciones con `git shortlog -sne --all` y `git log --oneline --all`. La revisión final debe comprobar las contribuciones sustantivas por integrante. Los commits de la entrega inicial no cuentan como contribuciones de los integrantes. El requisito se comprueba con trabajo real del equipo.
 
 ## Matriz de trazabilidad
 
@@ -33,7 +33,7 @@ Cuando el equipo tenga un remoto GitHub o GitLab, acuerde el repositorio y el ac
 | 3 | CRUD y cuatro estados | API y panel | Integración con alta, tres avances y borrado |
 | 4 | PostgreSQL, persistencia y replicación | Esquema, volumen y streaming WAL | Consultas directas a la réplica durante CRUD |
 | 5 | Tolerancia ante fallos simulados | NGINX, reintentos e idempotencia | CRUD con una API detenida; p95 y error medidos |
-| 6 | Seguridad, identidad y propiedad | Roles, filtros de servidor, AES-GCM y TLS opcional | Clientes aislados, 403 de Operaciones, SQL de texto cifrado, unitarias de manipulación |
+| 6 | Seguridad, identidad y propiedad | Roles, filtros de servidor, AES-GCM y HTTPS obligatorio para iniciar sesión | Clientes aislados, 403 de Operaciones, SQL de texto cifrado, unitarias de manipulación |
 | 7 | Fallos observables y recuperación | Monitor, auditoría y promoción | Eventos persistentes, indisponibilidad de base y procedimiento ensayado |
 | 8 | Pruebas unitarias y de integración | `tests` | Informe y evidencia de ejecución |
 | 9 | Código por componentes y manuales con diagramas y capturas | README y `docs` | Instalación, arquitectura, procedimientos y capturas |

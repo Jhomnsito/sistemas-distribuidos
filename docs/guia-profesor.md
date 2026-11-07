@@ -3,7 +3,7 @@
 ## Abrir Vayxer
 
 1. Instale y abra Docker Desktop con contenedores Linux. Descomprima el proyecto en una carpeta permanente.
-2. Ejecute **Vayxer.cmd**. El primer inicio prepara el certificado HTTPS local y le pide definir dos contraseñas con entrada oculta. El acceso se abre en Microsoft Edge con un perfil separado y confianza limitada al certificado local.
+2. Ejecute **Vayxer.cmd**. El primer inicio prepara el certificado HTTPS local y le pide definir dos contraseñas con entrada oculta. El lanzador verifica el certificado local y pide aceptación explícita antes de agregarlo al almacén de confianza de su usuario de Windows. Después abre Microsoft Edge con un perfil separado, sin opciones para ignorar errores HTTPS.
 3. Use **Instalar acceso directo.cmd** para abrir Vayxer desde el Escritorio en adelante. El panel se abre después de que Docker confirme disponibilidad.
 
 | Cuenta | Qué demostrar |

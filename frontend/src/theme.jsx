@@ -33,7 +33,7 @@ export default function ThemeToggle() {
     try {
       localStorage.setItem(preferenceKey, next);
     } catch {
-      // The selected theme still applies for this page.
+      // El tema se aplica aunque no se pueda guardar la preferencia.
     }
   }
 

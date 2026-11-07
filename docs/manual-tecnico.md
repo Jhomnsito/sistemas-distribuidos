@@ -4,13 +4,15 @@
 
 ```mermaid
 flowchart LR
-  U["Navegador · React"] -->|"HTTP en loopback"| G["NGINX · estáticos y proxy"]
+  U["Navegador · React"] -->|"HTTPS en loopback"| G["NGINX · estáticos y proxy"]
   G -->|"REST"| A["FastAPI · api-a"]
   G -->|"REST"| B["FastAPI · api-b"]
   A -->|"SQL · lectura y escritura"| P["PostgreSQL primario"]
   B -->|"SQL · lectura y escritura"| P
   P -->|"WAL físico asíncrono"| S["PostgreSQL réplica"]
   G -->|"REST de operaciones"| M["Monitor · FastAPI y SQLite"]
+  A -->|"Validación de sesión"| M
+  B -->|"Validación de sesión"| M
   M -.->|"Sondas"| A
   M -.->|"Sondas"| B
   M -.->|"Salud y auditoría"| P
@@ -27,7 +29,7 @@ sequenceDiagram
   participant A as FastAPI
   participant P as Primario
   participant R as Réplica
-  UI->>G: POST, PUT o DELETE + token y UUID
+  UI->>G: POST, PUT o DELETE + cookie y UUID
   G->>A: Reenvío a un nodo disponible
   A->>P: INSERT clave, validación y cambio en una transacción
   P-->>A: Confirmación local de COMMIT
@@ -43,13 +45,18 @@ El flujo indica que el API espera el commit local. La reproducción en la répli
 |---|---|---|
 | GET | `/api/live` | Vida del proceso, 200 |
 | GET | `/api/ready` | Conexión al nodo escribible y esquema disponible, 200 o 503 |
+| POST | `/api/auth/login` | Usuario y contraseña; entrega cookie de sesión o 401/429 |
+| POST | `/api/auth/logout` | Revoca la sesión y elimina la cookie |
+| GET | `/api/session` | Identidad y rol autenticados |
+| GET | `/api/ops/summary` | Salud, auditoría, eventos y cuentas cliente; solo administración |
+| PUT | `/api/auth/accounts/{username}` | Bloqueo o desbloqueo de cliente; solo administración |
 | GET | `/api/orders` | `limit` de 1 a 100 y `offset`, por fecha de creación descendente e ID |
 | GET | `/api/orders/{id}` | Consulta por UUID, 200 o 404 |
 | POST | `/api/orders` | `customer`, `item`, `quantity`; 201 y estado inicial pendiente |
 | PUT | `/api/orders/{id}` | Campos anteriores, `version` y `status`; 200 y versión nueva |
 | DELETE | `/api/orders/{id}` | Cuerpo JSON con `version`; 200 con ID y confirmación |
 
-Las rutas de pedidos exigen una sesión opaca entregada en cookie por HTTPS. Los clientes crean y consultan pedidos propios. La API filtra por identidad estable, devuelve 404 ante pedidos ajenos y reserva PUT/DELETE a administración (403 para clientes). GET /api/session informa el rol autenticado. GET /api/ops/summary exige administración y devuelve sondas e historial. Todas las mutaciones requieren un UUID en `Idempotency-Key`. Una repetición exitosa con el mismo método, pedido y cuerpo normalizado devuelve el resultado original. Reutilizar la clave con otra solicitud devuelve 409. Un error de validación devuelve 422. Los fallos de transacción revierten el cambio y la reserva de clave juntos.
+Las rutas de pedidos exigen una sesión opaca entregada en cookie por HTTPS. Los clientes crean y consultan pedidos propios. La API filtra por identidad estable, devuelve 404 ante pedidos ajenos y reserva PUT/DELETE a administración (403 para clientes). GET /api/session informa el rol autenticado. GET /api/ops/summary exige administración y devuelve sondas e historial. Las mutaciones de pedidos requieren un UUID en `Idempotency-Key`. Una repetición exitosa con el mismo método, pedido y cuerpo normalizado devuelve el resultado original. Reutilizar la clave con otra solicitud devuelve 409. Un error de validación devuelve 422. Los fallos de transacción revierten el cambio y la reserva de clave juntos.
 
 PostgreSQL serializa las solicitudes con una misma clave mediante la restricción única. Para edición y borrado, `FOR UPDATE` serializa cambios en una fila y `version` rechaza escrituras basadas en una copia anterior. Los estados permiten conservar el actual o avanzar un paso: pendiente → en proceso → enviado → entregado. Las lecturas salen del primario para que una consulta posterior al commit vea el cambio.
 
@@ -78,7 +85,7 @@ Los campos cliente y producto y el resultado de las mutaciones se protegen con A
 
 ### HTTPS local
 
-El asistente de Windows genera un certificado local de 30 días si no existe. Para una instalación manual con OpenSSL, crea una carpeta `local-tls` y genera un certificado de laboratorio con SAN para el nombre y la dirección usados por el navegador:
+El lanzador de Windows genera un certificado local de 30 días si no existe. Antes de abrir Edge, valida firma, vigencia, SAN limitado a `localhost` y `127.0.0.1`, y coincidencia exacta del certificado servido con `local-tls/cert.pem`. Si falta confianza, muestra la huella y requiere escribir `SI` para importar solo ese certificado al almacén `Root` de `CurrentUser` mediante `.NET X509Store`. No modifica el almacén de la máquina ni otras autoridades. Edge se abre con perfil dedicado y validación HTTPS normal. Las instalaciones anteriores conservan su certificado y su fecha de vencimiento. Para renovar antes o después del vencimiento, ejecuta `Vayxer.cmd -RenewCertificate`. Genera un par de 30 días, respalda el anterior dentro de `local-tls/previous-<fecha>`, detiene el gateway durante el reemplazo y vuelve a iniciarlo. La nueva confianza requiere otra aceptación; no cambia cuentas, pedidos ni `.env`. Los respaldos contienen claves privadas y deben permanecer fuera del repositorio y del ZIP. No se renueva en cada inicio. Para una instalación manual con OpenSSL, crea una carpeta `local-tls` y genera un certificado de laboratorio con SAN para el nombre y la dirección usados por el navegador:
 
 ```sh
 mkdir local-tls
@@ -99,7 +106,7 @@ La réplica se inicia con `pg_basebackup -X stream -R`. Usa rol dedicado y auten
 - **Pérdida de la réplica.** El primario sigue confirmando localmente. Se pierde la copia en línea durante el incidente.
 - **Pérdida del primario.** El servicio devuelve 503 o un error de gateway durante el cambio manual. Puede perderse WAL confirmado localmente que aún no llegó a la réplica. El RPO depende del atraso y puede crecer con una desconexión. Una clave de idempotencia perdida queda sujeta al mismo límite.
 - **Pérdida del gateway.** Las pantallas quedan inaccesibles. Si el monitor sigue activo, registra la caída y el retorno. Inspecciona `docker compose ps gateway` y `docker compose logs gateway`, corrige la causa y reinicia o recrea el gateway. Comprueba la portada y `/api/ready`.
-- **Pérdida del monitor o del host.** Un fallo del monitor no detiene el CRUD. Reinícialo y conserva su volumen para consultar eventos previos. El sistema comparte un host y la réplica física tampoco sustituye un respaldo restaurable.
+- **Pérdida del monitor o del host.** Sin el monitor, las APIs no pueden validar sesiones y rechazan el CRUD protegido. Reinícialo y conserva su volumen para recuperar las cuentas y consultar eventos previos. El sistema comparte un host y la réplica física tampoco sustituye un respaldo restaurable.
 
 Para observar replicación, usa estas consultas desde el primario y la réplica, respectivamente:
 
@@ -148,7 +155,7 @@ Usa un laboratorio desechable para ensayar. En una caída real, anota la hora, c
 | ADR-01 · Dos APIs sin estado | Aislar la caída de un proceso y permitir cambio de destino. La BD centraliza coordinación. |
 | ADR-02 · WAL asíncrono y promoción manual | Permite que la réplica se ausente sin bloquear al primario. Acepta posible pérdida de escrituras y un intervalo de indisponibilidad al promover. |
 | ADR-03 · Idempotencia transaccional y versión por fila | Evitar duplicados por reintentos y actualizaciones perdidas. El registro crece con cada mutación exitosa. |
-| ADR-04 · REST, sondas periódicas y claves individuales | Cubrir el flujo con pocos componentes. El monitor observa salud periódicamente y las listas de pedidos se actualizan al consultar o guardar. |
+| ADR-04 · REST, sondas periódicas y sesiones por cuenta | Cubrir el flujo con pocos componentes. El monitor observa salud periódicamente y las listas de pedidos se actualizan al consultar o guardar. |
 
 Fuentes técnicas oficiales. [PostgreSQL 16 · Streaming replication y promoción](https://www.postgresql.org/docs/16/warm-standby.html) · [PostgreSQL 16 · pg_basebackup](https://www.postgresql.org/docs/16/app-pgbasebackup.html) · [NGINX · proxy_next_upstream](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_next_upstream)
 

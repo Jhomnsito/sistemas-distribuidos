@@ -1,12 +1,17 @@
 # Informe de pruebas · Vayxer
 
-**Fecha de ejecución** 5 de noviembre de 2026, hora de Bogotá.
+**Ejecuciones:** 5 y 6 de noviembre de 2026, hora de Bogotá.
+
+La última revisión funcional validó 6 pruebas unitarias de autenticación y 8 de integración, bloqueo administrativo, persistencia de eventos, ambos roles y ambos temas. La prueba de caída obtuvo cero errores en 85 sondas. Los resultados se detallan al final. Las secciones iniciales conservan los ensayos históricos y sus condiciones; sus tiempos no se mezclan con los de Docker. No se midió capacidad máxima.
+
+## Ensayo nativo inicial · 5 de noviembre
+
 
 ## Entorno y método
 
 Windows con Python 3.12, FastAPI 0.162.0, Uvicorn 0.54.0, Psycopg 3.3.8, NGINX 1.28.2 y PostgreSQL 16.13. NGINX sirvió el build de React y conservó la política de reintentos del proyecto, con destinos loopback fijos en el ensayo. Las dos instancias PostgreSQL y las dos APIs se ejecutaron como procesos independientes en el mismo host.
 
-Compose 2.40.3 validó los manifiestos base y de recuperación y confirmó el volumen independiente de reemplazo. El host carecía de un motor Docker y de WSL. Quedan pendientes el arranque en contenedores, el DNS interno y la ejecución de los scripts de inicialización dentro de la imagen.
+Compose 2.40.3 validó los manifiestos base y de recuperación y confirmó el volumen independiente de reemplazo. El host carecía de un motor Docker y de WSL. En ese ensayo quedaron pendientes el arranque en contenedores, el DNS interno y los scripts de inicialización dentro de la imagen. Se verificaron posteriormente en Docker Desktop, según la sección del 6 de noviembre.
 
 ## Pruebas automatizadas
 
@@ -89,7 +94,7 @@ En el proyecto temporal de recuperación se aisló el primario, se comprobó HTT
 
 ### Acceso compacto y lanzador para Windows
 
-La revisión final dejó una sola tarjeta de acceso y el monograma en el encabezado y el favicon. Se retiraron el pie y el arte panorámico de ambos accesos. El arte se conserva como recurso de identidad. Edge verificó escritorio a 1360 px y móvil a 390 px, un único título principal, formulario visible y ausencia de desbordamiento horizontal. Se renovaron siete capturas desde Docker con datos de demostración.
+La revisión dejó una sola tarjeta de acceso. Más adelante, la flecha angular sustituyó al monograma en el encabezado y el favicon. Se retiraron el pie y el arte panorámico de ambos accesos. El arte se conserva como recurso de identidad. Edge verificó escritorio a 1360 px y móvil a 390 px, un único título principal, formulario visible y ausencia de desbordamiento horizontal. Se renovaron siete capturas desde Docker con datos de demostración.
 
 Se ejecutó el lanzador de Windows contra el proyecto local. Compose encontró los seis servicios y el lanzador confirmó HTTP 200 con estado ready antes de devolver la URL. Se creó y verificó el acceso directo del Escritorio, con destino resuelto desde el checkout que lo instaló y un icono ICO con el contorno angular rojo trazado a partir del arte Vayxer y exportado en tamaños de 16, 24, 32, 48, 64, 128 y 256 píxeles. El instalador vuelve a resolver las rutas si se ejecuta desde otra ubicación.
 
@@ -99,7 +104,7 @@ Se verificó un arranque de Windows desde una carpeta sin configuración ni cert
 
 Pasaron **4 pruebas unitarias de autenticación y 7 de integración**. El tercer fallo devolvió HTTP 429 con Retry-After de cinco segundos. Un intento inmediato con la contraseña correcta siguió bloqueado. El siguiente se aceptó tras **5,28 s**. Las pruebas por HTTPS rechazaron cookies alteradas, rol falso, peticiones de otro origen y alta pública de cuentas. Confirmaron propiedad, expiración, logout y uso de la misma sesión desde ambas APIs. Operaciones autenticó a administración y mantuvo el historial con PostgreSQL detenido.
 
-En Edge se verificaron el formulario único, el destino por rol, la cookie no legible desde JavaScript y el cierre de sesión. La confianza del certificado de prueba se limitó a su clave pública en el navegador de verificación. El asistente de Windows ofrece importar el certificado local solo con aceptación explícita.
+En Edge se verificaron el formulario único, el destino por rol, la cookie no legible desde JavaScript y el cierre de sesión. La confianza del certificado de prueba se limitó a su clave pública en el navegador de verificación. Ese ensayo usó una excepción de clave pública en el navegador. El lanzador posterior valida el certificado servido y requiere aceptación explícita antes de importarlo al almacén de confianza del usuario actual; ya no incluye opciones de Edge para ignorar errores de certificados.
 
 ## Controles de acceso y revisión de interfaz
 
@@ -110,3 +115,11 @@ Solo administración pudo bloquear y desbloquear clientes. El bloqueo revocó la
 La regresión del balanceador observó ambos nodos. Con API A detenida, API B completó el CRUD. Hubo **0 errores en 85 sondas**, con p95 de **101,6 ms** en base, **97,2 ms** durante la inyección y **86,8 ms** con el nodo detenido. El primer éxito tras confirmar la parada fue a los **0,172 s**. Actividad de acceso siguió disponible con PostgreSQL detenido.
 
 En el navegador se verificaron las confirmaciones y cancelación de cuentas, ambos temas, ambos roles y los anchos de **1360, 960 y 390 px**. Se ajustaron el tamaño mínimo de acciones, el ajuste de nombres largos y los campos de formularios en paneles estrechos. La arquitectura conserva sus componentes compartidos y los límites de capacidad descritos en el manual técnico.
+
+## Lanzador y confianza HTTPS · 7 de noviembre de 2026
+
+Se comprobó Windows PowerShell sin la unidad `Cert:`. La consulta mediante `.NET X509Store` reconoció el certificado ya instalado en `Root` de `CurrentUser`, no pidió importarlo y verificó `/api/ready` con validación HTTPS normal. Se corrigió la codificación de la salida UTF-8. El certificado público servido coincidió exactamente con el archivo local y superó la validación de firma, vigencia, SAN y clave pública.
+
+Pasaron 5 pruebas unitarias específicas del certificado: aceptación de loopback, rechazo de otro nombre, vencimiento, certificado CA y firma incorrecta. Un servidor TLS temporal con otro certificado local permitió comprobar el flujo sin confianza: responder `NO` canceló y el certificado de prueba no apareció en el almacén. No se importaron certificados de prueba.
+
+La verificación visual de Edge se interrumpió porque la herramienta de control no pudo determinar la URL del navegador. El proceso se abrió con el perfil dedicado y sin opciones para ignorar errores HTTPS. La renovación explícita genera certificados de 30 días y conserva el par anterior; no se ejecutó contra el certificado de la instalación durante esta revisión.
